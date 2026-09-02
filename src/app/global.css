@@ -17,7 +17,7 @@
 
     /* FOR LABEL TEXT INPUT  */
     .text-label {
-        @apply font-medium text-xl;
+        @apply font-medium text-xl text-gray-700;
     }
 
     /* FOR NORMAL TEXT/FONT  */
@@ -31,6 +31,7 @@
     --color-theme-green: #038175;
     --color-theme-white: #F7F7F7;
     --color-theme-blue: #017BFE;
-    --color-theme-green-soft: #38C172;
     --color-theme-yellow: #FFDD78;
+    --color-theme-red: #DB3546;
+    --color-theme-green-soft: #38C172;
 }

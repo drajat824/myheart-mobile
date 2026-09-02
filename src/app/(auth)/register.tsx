@@ -9,12 +9,12 @@ export default function Register() {
 
   return (
     <Wrapper>
-      <View className="flex-1 flex-col">
+      <View className="flex-1 justify-between">
 
         {/* FLEX 1 */}
-        <View className="flex-1 items-center justify-center">
-          <MaterialDesignIcons name="account-circle" size={240} color="#333333" />
-          <Text className="text-title">
+        <View className="items-center justify-start">
+          <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
+          <Text className="text-title text-2xl font-bold mt-2">
             DAFTAR AKUN
           </Text>
         </View>
@@ -44,7 +44,7 @@ export default function Register() {
         </View>
 
         {/* FLEX 3 */}
-        <View className="flex-none gap-4 h-[16%] justify-center">
+        <View className="flex-none gap-2 pt-4 justify-center">
           <Button onPress={() => console.log('Button pressed')} mode="contained" buttonColor="#038175">
             DAFTAR
           </Button>
@@ -58,7 +58,6 @@ export default function Register() {
               </Text>
             </Pressable>
           </View>
-
         </View>
 
       </View>
