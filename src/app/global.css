@@ -4,11 +4,20 @@
  
 @import "nativewind/theme";
 
+@layer components {
+    .text-title {
+        @apply text-4xl font-bold;
+    }
+    .text-label {
+        @apply text-xl font-medium;
+    }
+}
+
 @theme {
     --color-theme-black: #333333;
     --color-theme-green: #038175;
     --color-theme-white: #F7F7F7;
     --color-theme-blue: #017BFE;
     --color-theme-green-soft: #38C172;
-    --color-theme-yellow: #FFDD78
+    --color-theme-yellow: #FFDD78;
 }

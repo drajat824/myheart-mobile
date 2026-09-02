@@ -1,24 +1,56 @@
-import { SymbolView } from "expo-symbols";
-import { Text, View } from "react-native";
-import { SafeAreaView } from "react-native-safe-area-context";
+import MaterialDesignIcons from '@react-native-vector-icons/material-design-icons';
+import { useRouter } from 'expo-router';
+import { Pressable, Text, View } from 'react-native';
+import { TextInput } from 'react-native-paper';
+import { Button, CustomTextInput, Wrapper } from '../../component';
 
 export default function Login() {
-  return (
-    <SafeAreaView>
-      <View className="h-full w-full flex-1 flex-col items-center justify-center bg-theme-black">
+  const router = useRouter();
 
-        {/* FLEX 1*/}
-        <View>
-          <SymbolView name={{ android: 'account_circle' }} size={180} tintColor="#000000" weight="regular" />
-          <Text className="text-xl font-bold">MASUK</Text>
+  return (
+    <Wrapper>
+      <View className="flex-1 flex-col">
+
+        {/* FLEX 1 */}
+        <View className="flex-1 items-center justify-center">
+          <MaterialDesignIcons name="account-circle" size={240} color="#333333" />
+          <Text className="text-title">
+            MASUK
+          </Text>
         </View>
 
         {/* FLEX 2 */}
-        <View>
+        <View className="flex-1 items-left justify-center gap-4">
+          <View className="gap-2">
+            <Text className="text-label">
+              EMAIL
+            </Text>
+            <CustomTextInput placeholder='Masukan email..' />
+          </View>
+          <View className="gap-2">
+            <Text className="text-label">
+              KATA SANDI
+            </Text>
+            <CustomTextInput placeholder='Masukan kata sandi..' right={<TextInput.Icon icon="eye" />} />
+          </View>
 
+          <Pressable className="active:opacity-40 self-end" onPress={() => console.log('Lupa kata sandi pressed')}>
+            <Text className="text-label text-right text-theme-green mt-[-5]">
+              Lupa kata sandi?
+            </Text>
+          </Pressable>
         </View>
 
+        {/* FLEX 3 */}
+        <View className="flex-none items-left gap-4 justify-center h-[16%]">
+          <Button onPress={() => console.log('Button pressed')} mode="contained" buttonColor="#038175">
+            MASUK
+          </Button>
+          <Button onPress={() => router.push('/register')} mode="outlined" buttonColor="transparent" textColor="#038175" borderColor="#038175">
+            DAFTAR
+          </Button>
+        </View>
       </View>
-    </SafeAreaView>
+    </Wrapper>
   );
 }
