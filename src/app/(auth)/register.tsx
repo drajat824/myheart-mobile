@@ -48,7 +48,7 @@ export default function Register() {
           <Button onPress={() => console.log('Button pressed')} mode="contained" buttonColor="#038175">
             DAFTAR
           </Button>
-          <Text className="text-2xl text-center items-center justify-center">
+          <Text className="text-label text-center items-center justify-center">
             Sudah punya akun?{' '}
             <Pressable className="active:opacity-40 pt-[7]" onPress={() => router.push('/login')}>
               <Text className="text-2xl text-theme-green font-bold">

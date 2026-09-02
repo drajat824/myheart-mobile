@@ -5,11 +5,24 @@
 @import "nativewind/theme";
 
 @layer components {
+
+    /* FOR TITLE ONLY  */
     .text-title {
-        @apply text-4xl font-bold;
+        @apply font-bold text-4xl;
     }
+
+    .text-title-sub {
+        @apply text-3xl;
+    }
+
+    /* FOR LABEL TEXT INPUT  */
     .text-label {
-        @apply text-xl font-medium;
+        @apply font-medium text-xl;
+    }
+
+    /* FOR NORMAL TEXT/FONT  */
+    .text-normal {
+        @apply text-xl
     }
 }
 
