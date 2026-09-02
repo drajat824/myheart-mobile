@@ -44,18 +44,20 @@ export default function Register() {
         </View>
 
         {/* FLEX 3 */}
-        <View className="flex-none items-left gap-4 h-[16%] justify-center">
+        <View className="flex-none gap-4 h-[16%] justify-center">
           <Button onPress={() => console.log('Button pressed')} mode="contained" buttonColor="#038175">
             DAFTAR
           </Button>
-          <Text className="text-label text-center items-center justify-center">
-            Sudah punya akun?{' '}
-            <Pressable className="active:opacity-40 pt-[7]" onPress={() => router.push('/login')}>
+          <View className='flex flex-row gap-2 justify-center items-center'>
+            <Text className="text-label">
+              Sudah punya akun?
+            </Text>
+            <Pressable className="active:opacity-40" onPress={() => router.push('/login')}>
               <Text className="text-2xl text-theme-green font-bold">
                 MASUK
               </Text>
             </Pressable>
-          </Text>
+          </View>
 
         </View>
 

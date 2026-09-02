@@ -35,7 +35,7 @@ export default function Login() {
           </View>
 
           <Pressable className="active:opacity-40 self-end" onPress={() => console.log('Lupa kata sandi pressed')}>
-            <Text className="text-label text-right text-theme-green mt-[-5]">
+            <Text className="text-xl font-semibold text-right text-theme-green mt-[-5]">
               Lupa kata sandi?
             </Text>
           </Pressable>
