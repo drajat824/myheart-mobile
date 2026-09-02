@@ -1,6 +1,6 @@
 import { Tabs } from 'expo-router';
 import { SymbolView } from 'expo-symbols';
-import { View } from 'react-native';
+import { Pressable, View } from 'react-native';
 
 export default function TabLayout() {
     return (
@@ -17,20 +17,33 @@ export default function TabLayout() {
                 },
                 tabBarActiveTintColor: 'white',
                 tabBarInactiveTintColor: '#a0a0a0',
+                tabBarButton: (props: any) => (
+                    <Pressable {...props} android_ripple={{ color: 'transparent' }} />
+                )
             }}
         >
+
             {/* REKAM MEDIS */}
             <Tabs.Screen
                 name="records"
                 options={{
                     title: 'Records',
-                    tabBarIcon: ({ color }) => (
-                        <SymbolView
-                            name={{ ios: 'text.book.closed', android: 'library_books' }}
-                            tintColor={color}
-                            size={35}
-                        />
-                    ),
+                    tabBarButton: ({ onPress, children, ...props }: any) => {
+                        const isFocused = props.focused ?? props['aria-selected'];
+                        return (
+                            <Pressable
+                                {...props}
+                                onPress={onPress}
+                                android_ripple={{ color: 'rgba(255,255,255,0.1)', borderless: true }}
+                                className="flex-1 justify-center items-center active:bg-white active:opacity-60 rounded-full">
+                                <SymbolView
+                                    name={{ ios: 'text.book.closed', android: 'library_books' }}
+                                    tintColor={isFocused ? '#ffffff' : '#888'}
+                                    size={35}
+                                />
+                            </Pressable>
+                        )
+                    }
                 }}
             />
 
@@ -39,19 +52,24 @@ export default function TabLayout() {
                 name="dashboard"
                 options={{
                     title: 'Dashboard',
-                    tabBarIcon: ({ focused, color }) => (
-                        <View
-                            className={`justify-center items-center w-[70px] h-[70px] rounded-full border-2 -top-5 shadow-lg shadow-black/30 ${
-                                focused ? 'bg-black border-white' : 'bg-white border-black'
-                            }`}
-                        >
-                            <SymbolView
-                                name={{ ios: 'house', android: 'home' }}
-                                tintColor={focused ? 'white' : color}
-                                size={35}
-                            />
-                        </View>
-                    ),
+                    tabBarButton: ({ onPress, children, ...props }: any) => {
+                        const isFocused = props.focused ?? props['aria-selected'];
+                        return (
+                            <Pressable
+                                {...props}
+                                onPress={onPress}
+                                android_ripple={{ color: 'rgba(255,255,255,0.1)', borderless: true }}
+                                className="flex-1 justify-center items-center -top-10">
+                                <View className={`justify-center items-center w-[70px] h-[70px] rounded-full border-2 shadow-lg shadow-black/30 ${isFocused ? 'bg-white border-black' : 'bg-black border-white'}`}>
+                                    <SymbolView
+                                        name={{ ios: 'house', android: 'home' }}
+                                        tintColor={isFocused ? 'black' : '#a0a0a0'}
+                                        size={35}
+                                    />
+                                </View>
+                            </Pressable>
+                        );
+                    },
                 }}
             />
 
@@ -60,13 +78,22 @@ export default function TabLayout() {
                 name="medicine"
                 options={{
                     title: 'Medicine',
-                    tabBarIcon: ({ color }) => (
-                        <SymbolView
-                            name={{ ios: 'bell', android: 'notifications' }}
-                            tintColor={color}
-                            size={35}
-                        />
-                    ),
+                    tabBarButton: ({ onPress, children, ...props }: any) => {
+                        const isFocused = props.focused ?? props['aria-selected'];
+                        return (
+                            <Pressable
+                                {...props}
+                                onPress={onPress}
+                                android_ripple={{ color: 'rgba(255,255,255,0.1)', borderless: true }}
+                                className="flex-1 justify-center items-center active:bg-white active:opacity-60 rounded-full">
+                                <SymbolView
+                                    name={{ ios: 'bell', android: 'notifications' }}
+                                    tintColor={isFocused ? '#ffffff' : '#888'}
+                                    size={35}
+                                />
+                            </Pressable>
+                        )
+                    }
                 }}
             />
         </Tabs>

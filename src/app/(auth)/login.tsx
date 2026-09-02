@@ -43,7 +43,7 @@ export default function Login() {
 
         {/* FLEX 3 */}
         <View className="flex-none items-left gap-4 justify-center h-[16%]">
-          <Button onPress={() => console.log('Button pressed')} mode="contained" buttonColor="#038175">
+          <Button onPress={() => router.push('/dashboard')} mode="contained" buttonColor="#038175">
             MASUK
           </Button>
           <Button onPress={() => router.push('/register')} mode="outlined" buttonColor="transparent" textColor="#038175" borderColor="#038175">
