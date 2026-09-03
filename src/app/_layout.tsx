@@ -1,5 +1,5 @@
-import { Stack } from 'expo-router';
-import { PaperProvider } from 'react-native-paper';
+import { Stack } from "expo-router";
+import { PaperProvider } from "react-native-paper";
 import "./global.css";
 
 export default function RootLayout() {
@@ -9,6 +9,7 @@ export default function RootLayout() {
         <Stack.Screen name="index" options={{ headerShown: false }} />
         <Stack.Screen name="(auth)" options={{ headerShown: false }} />
         <Stack.Screen name="(tabs)" options={{ headerShown: false }} />
+        <Stack.Screen name="(other)" options={{ headerShown: false }} />
       </Stack>
     </PaperProvider>
   );

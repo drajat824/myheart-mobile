@@ -45,7 +45,7 @@ export default function Records() {
               </View>
             </View>
 
-            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records")}>
+            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_periodic")}>
               <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
               <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
             </Pressable>
@@ -74,7 +74,7 @@ export default function Records() {
               </View>
             </View>
 
-            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records")}>
+            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
               <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
               <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
             </Pressable>
@@ -84,7 +84,7 @@ export default function Records() {
             <Text className="text-normal font-bold">RIWAYAT HEART-RATE</Text>
             <Text className="text-normal text-gray-500">Rabu, 25 Agustus 2026</Text>
 
-            {/* DAFTAR GANGGUAN */}
+            {/* DAFTAR HR */}
             <View className="flex-col gap-3 mt-2">
               <View className="flex-row items-center gap-4">
                 <View className="w-2 h-2 rounded-full bg-black" />
@@ -103,7 +103,7 @@ export default function Records() {
               </View>
             </View>
 
-            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records")}>
+            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr")}>
               <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
               <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
             </Pressable>
