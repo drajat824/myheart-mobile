@@ -25,7 +25,7 @@ export default function Dashboard() {
             </Pressable>
           </View>
           <Text className="text-normal text-white font-light">john_doe@gmail.com</Text>
-          <Button style={{ borderRadius: 5 }} onPress={() => console.log("Button pressed")} mode="contained" buttonColor="#DB3546" height={100} fontSize={16}>
+          <Button style={{ borderRadius: 5 }} onPress={() => router.navigate("/dashboard_smartwatch")} mode="contained" buttonColor="#DB3546" height={100} fontSize={16}>
             <View className="flex flex-row items-center gap-2">
               <MaterialDesignIcons name="watch-import" size={55} color="#FFFFFF" />
               <Text className="text-4xl text-white font-normal">HUBUNGKAN{"\n"}SMARTWATCH</Text>
