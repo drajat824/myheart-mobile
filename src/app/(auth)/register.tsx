@@ -11,13 +11,13 @@ export default function Register() {
     <Wrapper>
       <View className="flex-1 justify-between">
         {/* FLEX 1 */}
-        <View className="items-center justify-start">
+        <View className="items-center justify-center flex-1">
           <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
           <Text className="text-title text-2xl font-bold mt-2">DAFTAR AKUN</Text>
         </View>
 
         {/* FLEX 2 */}
-        <View className="flex-1 items-left justify-center gap-4">
+        <View className="flex-1 items-left justify-center gap-4 flex-1">
           <View className="gap-2">
             <Text className="text-label">EMAIL</Text>
             <CustomTextInput placeholder="Masukan email.." />
@@ -34,7 +34,7 @@ export default function Register() {
         </View>
 
         {/* FLEX 3 */}
-        <View className="flex-none gap-2 pt-4 justify-center">
+        <View className="flex-none gap-2 pt-4 justify-center flex-none">
           <Button onPress={() => console.log("Button pressed")} mode="contained" buttonColor="#038175">
             DAFTAR
           </Button>

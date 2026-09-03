@@ -10,13 +10,13 @@ export default function Forgot() {
     <Wrapper>
       <View className="flex-1 justify-between">
         {/* FLEX 1: Header / Logo */}
-        <View className="items-center justify-start">
+        <View className="items-center justify-center flex-1">
           <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
           <Text className="text-title text-2xl font-bold mt-2">LUPA KATA SANDI</Text>
         </View>
 
         {/* FLEX 2: Form Input */}
-        <View className="flex-1 flex-col justify-start my-12 ">
+        <View className="flex-1 flex-col justify-start my-12 flex-1">
           <View className="gap-2">
             <Text className="text-label">EMAIL</Text>
             <CustomTextInput placeholder="Masukan email.." />
@@ -24,7 +24,7 @@ export default function Forgot() {
         </View>
 
         {/* FLEX 3: Action Buttons */}
-        <View className="flex flex-col gap-3 items-center w-full">
+        <View className="flex flex-col gap-3 items-center w-full flex-1 justify-end">
           <Button onPress={() => console.log("TES")} mode="contained" buttonColor="#038175" style={{ width: "100%" }}>
             KIRIM
           </Button>

@@ -14,7 +14,7 @@ export default function Records() {
     <Wrapper>
       <View className="flex-col">
         {/* FLEX 1: HEADER PAGES */}
-        <View className="flex-none justify-center bg-theme-black h-fit w-screen -mx-8 p-8 gap-2">
+        <View className="flex-none justify-center bg-theme-black h-fit w-screen -mx-8 p-8  gap-2">
           <Text className="text-title text-white">REKAM MEDIS</Text>
           <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
         </View>

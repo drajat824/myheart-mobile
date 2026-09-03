@@ -1,5 +1,5 @@
 import React from "react";
-import { ScrollView } from "react-native";
+import { ScrollView, View } from "react-native";
 import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 type WrapperProps = {
@@ -10,15 +10,17 @@ export default function Wrapper({ children }: WrapperProps) {
   const insets = useSafeAreaInsets();
 
   return (
-    <ScrollView
-      className="flex-1 bg-theme-white px-8"
-      contentContainerStyle={{
-        flexGrow: 1,
-        paddingTop: insets.top,
-        paddingBottom: 80,
-      }}
-    >
-      {children}
-    </ScrollView>
+    <>
+      <View className="bg-black" style={{ height: insets.top }} />
+      <ScrollView
+        className="flex-1 bg-theme-white px-8"
+        contentContainerStyle={{
+          flexGrow: 1,
+          paddingBottom: 80,
+        }}
+      >
+        {children}
+      </ScrollView>
+    </>
   );
 }

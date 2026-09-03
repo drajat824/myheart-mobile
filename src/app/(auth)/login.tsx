@@ -11,13 +11,13 @@ export default function Login() {
     <Wrapper>
       <View className="flex-1 justify-between">
         {/* FLEX 1: Header / Logo */}
-        <View className="items-center justify-start">
+        <View className="flex-1 items-center justify-center">
           <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
           <Text className="text-title text-2xl font-bold mt-2">MASUK</Text>
         </View>
 
         {/* FLEX 2: Form Input */}
-        <View className="justify-center gap-4 my-6">
+        <View className="flex-1 justify-center gap-4 my-6">
           <View className="gap-2">
             <Text className="text-label">EMAIL</Text>
             <CustomTextInput placeholder="Masukan email.." />
@@ -34,7 +34,7 @@ export default function Login() {
         </View>
 
         {/* FLEX 3: Action Buttons */}
-        <View className="gap-3">
+        <View className="gap-3 flex-none">
           <Button onPress={() => router.push("/dashboard")} mode="contained" buttonColor="#038175">
             MASUK
           </Button>
