@@ -4,7 +4,7 @@ import { Pressable, Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Button, CustomTextInput, Wrapper } from "../../component";
 
-export default function Login() {
+export default function Forgot() {
   const router = useRouter();
 
   return (
@@ -13,7 +13,7 @@ export default function Login() {
         {/* FLEX 1: Header / Logo */}
         <View className="items-center justify-start">
           <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
-          <Text className="text-title text-2xl font-bold mt-2">MASUK</Text>
+          <Text className="text-title text-2xl font-bold mt-2">LUPA KATA SANDI</Text>
         </View>
 
         {/* FLEX 2: Form Input */}
@@ -28,7 +28,7 @@ export default function Login() {
             <CustomTextInput placeholder="Masukan kata sandi.." right={<TextInput.Icon icon="eye" />} />
           </View>
 
-          <Pressable onPress={() => router.push("/forgot")} className="active:opacity-40 self-end">
+          <Pressable className="active:opacity-40 self-end" onPress={() => console.log("Lupa kata sandi pressed")}>
             <Text className="text-xl font-semibold text-right text-theme-green">Lupa kata sandi?</Text>
           </Pressable>
         </View>
