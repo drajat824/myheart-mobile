@@ -25,6 +25,9 @@
       "eas": {
         "projectId": "b7037c7b-b945-4893-9d96-b47b755a306d"
       }
+    },
+    "ios": {
+      "bundleIdentifier": "com.darojat.myheartmobile"
     }
   }
 }
