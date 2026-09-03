@@ -14,7 +14,6 @@ export default function Wrapper({ children }: WrapperProps) {
       className="flex-1 bg-theme-white px-8"
       contentContainerStyle={{
         flexGrow: 1,
-        // paddingHorizontal: 32,
         paddingTop: insets.top,
         paddingBottom: 80,
       }}
