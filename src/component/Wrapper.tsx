@@ -14,6 +14,8 @@ export default function Wrapper({ children }: WrapperProps) {
       <View className="bg-black" style={{ height: insets.top }} />
       <ScrollView
         className="flex-1 bg-theme-white px-8"
+        overScrollMode="never"
+        bounces={false}
         contentContainerStyle={{
           flexGrow: 1,
           paddingBottom: 80,

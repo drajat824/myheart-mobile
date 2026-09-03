@@ -85,7 +85,7 @@ export default function Dashboard() {
                 <Text className="text-xl">10:00 WIB</Text>
               </View>
 
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records")}>
+              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
