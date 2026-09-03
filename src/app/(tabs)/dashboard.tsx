@@ -20,7 +20,7 @@ export default function Dashboard() {
             <Text className="text-white text-4xl font-light">
               Hallo, <Text className="font-semibold">John Doe</Text>
             </Text>
-            <Pressable className="active:opacity-40" onPress={() => console.log("Settings pressed")}>
+            <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
               <MaterialDesignIcons name="cog-outline" size={35} color="#FFFFFF" />
             </Pressable>
           </View>
