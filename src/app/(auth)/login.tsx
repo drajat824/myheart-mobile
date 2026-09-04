@@ -2,13 +2,13 @@ import MaterialDesignIcons from "@react-native-vector-icons/material-design-icon
 import { useRouter } from "expo-router";
 import { Pressable, Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
-import { Button, CustomTextInput, Wrapper } from "../../component";
+import { Button, CustomTextInput, WrapperAuth } from "../../component";
 
 export default function Login() {
   const router = useRouter();
 
   return (
-    <Wrapper>
+    <WrapperAuth>
       <View className="flex-1 justify-between">
         {/* FLEX 1: Header / Logo */}
         <View className="flex-1 items-center justify-center">
@@ -43,6 +43,6 @@ export default function Login() {
           </Button>
         </View>
       </View>
-    </Wrapper>
+    </WrapperAuth>
   );
 }

@@ -24,6 +24,14 @@
     .text-normal {
         @apply text-xl
     }
+
+    .text-header-router {
+        @apply text-3xl font-semibold text-white
+    }
+
+    .text-header-router-sub {
+        @apply text-xl font-normal text-white
+    }
 }
 
 @theme {

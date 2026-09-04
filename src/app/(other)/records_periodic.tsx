@@ -2,7 +2,7 @@ import MaterialDesignIcons from "@react-native-vector-icons/material-design-icon
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Cards, Wrapper } from "../../component";
+import { Cards, RouterSub, WrapperMain } from "../../component";
 
 export default function RecordsPeriodic() {
   const router = useRouter();
@@ -11,18 +11,10 @@ export default function RecordsPeriodic() {
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
 
   return (
-    <Wrapper>
+    <WrapperMain>
       <View className="flex-col">
-        {/* FLEX 1: HEADER PAGES */}
-        <View className="flex-none flex flex-row bg-theme-black h-fit w-screen -mx-8 p-8 gap-4">
-          <Pressable onPress={() => router.back()} className="active:opacity-50">
-            <MaterialDesignIcons name="arrow-left" size={45} color="#fff" />
-          </Pressable>
-          <View className="flex-col gap-2 pt-1">
-            <Text className="text-title text-white">REKAM MEDIS</Text>
-            <Text className="text-2xl font-bold text-white">PEMERIKSAAN BERKALA</Text>
-          </View>
-        </View>
+        {/* HEADER PAGES */}
+        <RouterSub title="REKAM MEDIS" subTitle="PEMERIKSAAN BERKALA" />
 
         {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex flex-col gap-4">
@@ -109,6 +101,6 @@ export default function RecordsPeriodic() {
           </Cards>
         </View>
       </View>
-    </Wrapper>
+    </WrapperMain>
   );
 }

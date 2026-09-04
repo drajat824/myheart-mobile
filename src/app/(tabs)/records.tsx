@@ -2,7 +2,7 @@ import MaterialDesignIcons from "@react-native-vector-icons/material-design-icon
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Cards, Wrapper } from "../../component";
+import { Cards, Header, WrapperMain } from "../../component";
 
 export default function Records() {
   const router = useRouter();
@@ -11,13 +11,13 @@ export default function Records() {
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
 
   return (
-    <Wrapper>
+    <WrapperMain>
       <View className="flex-col">
         {/* FLEX 1: HEADER PAGES */}
-        <View className="flex-none justify-center bg-theme-black h-fit w-screen -mx-8 p-8  gap-2">
+       <Header>
           <Text className="text-title text-white">REKAM MEDIS</Text>
           <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
-        </View>
+        </Header>
 
         {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex flex-col gap-4 mt-4">
@@ -110,6 +110,6 @@ export default function Records() {
           </Cards>
         </View>
       </View>
-    </Wrapper>
+    </WrapperMain>
   );
 }

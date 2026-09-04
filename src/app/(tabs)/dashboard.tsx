@@ -3,19 +3,23 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
-import { Button, Cards, Wrapper } from "../../component";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
+import { Cards, CustomButton, Header, WrapperMain } from "../../component";
 
 export default function Dashboard() {
   const router = useRouter();
+  const insets = useSafeAreaInsets();
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
 
   return (
-    <Wrapper>
+    <WrapperMain>
+
       <View className="flex-col">
+
         {/* FLEX 1: HEADER PAGES */}
-        <View className="flex-none justify-center bg-theme-black h-fit w-screen -mx-8 p-8 gap-2">
+        <Header>
           <View className="flex-row items-center justify-between">
             <Text className="text-white text-4xl font-light">
               Hallo, <Text className="font-semibold">John Doe</Text>
@@ -25,16 +29,16 @@ export default function Dashboard() {
             </Pressable>
           </View>
           <Text className="text-normal text-white font-light">john_doe@gmail.com</Text>
-          <Button style={{ borderRadius: 5 }} onPress={() => router.navigate("/dashboard_smartwatch")} mode="contained" buttonColor="#DB3546" height={100} fontSize={16}>
+          <CustomButton onPress={() => router.navigate("/dashboard_smartwatch")} buttonColor="#DB3546" borderRadius={10}>
             <View className="flex flex-row items-center gap-2">
-              <MaterialDesignIcons name="watch-import" size={55} color="#FFFFFF" />
-              <Text className="text-4xl text-white font-normal">HUBUNGKAN{"\n"}SMARTWATCH</Text>
+              <MaterialDesignIcons name="watch-import" size={40} color="#FFFFFF" />
+              <Text className="text-3xl text-white font-normal">HUBUNGKAN{"\n"}SMARTWATCH</Text>
             </View>
-          </Button>
+          </CustomButton>
           <Text className="text-normal text-white font-light">
             DEVICE: <Text className="font-semibold">HUAWEI BAND 10</Text>
           </Text>
-        </View>
+        </Header>
 
         {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex flex-col gap-2 mt-4">
@@ -111,6 +115,6 @@ export default function Dashboard() {
           </View>
         </View>
       </View>
-    </Wrapper>
+    </WrapperMain>
   );
 }

@@ -27,7 +27,7 @@ export default function Index() {
 
 const styles = StyleSheet.create({
   logo: {
-    width: 420,
-    height: 420,
+    width: 300,
+    height: 300,
   },
 });

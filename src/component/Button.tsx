@@ -6,9 +6,10 @@ type Props = React.ComponentProps<typeof PaperButton> & {
   height?: number;
   fontSize?: number;
   borderColor?: string;
+  children?: React.ReactNode;
 };
 
-const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fontSize = 20, borderColor = "#038175", disabled = false, style, ...props }: Props) => {
+const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fontSize = 20, borderColor = "#038175", disabled = false, style, children, ...props }: Props) => {
   return (
     <PaperButton
       mode="contained"
@@ -35,7 +36,7 @@ const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fon
       }}
       {...props}
     >
-      {props.children || label}
+      {children || label}
     </PaperButton>
   );
 };

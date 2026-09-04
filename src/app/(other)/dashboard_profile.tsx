@@ -1,22 +1,16 @@
-import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useRouter } from "expo-router";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
-import { Button, CustomTextInput, Wrapper } from "../../component";
+import { Button, CustomTextInput, RouterSub, WrapperMain } from "../../component";
 
 export default function DashboardProfile() {
   const router = useRouter();
 
   return (
-    <Wrapper>
+    <WrapperMain>
       <View className="flex-1 flex-col justify-between">
         {/* HEADER PAGES */}
-        <View className="flex-none flex flex-row bg-theme-black h-fit w-screen -mx-8 p-8 gap-4 items-center">
-          <Pressable onPress={() => router.back()} className="active:opacity-50">
-            <MaterialDesignIcons name="arrow-left" size={45} color="#fff" />
-          </Pressable>
-          <Text className="text-title text-white">PROFILE</Text>
-        </View>
+        <RouterSub title="PROFILE" />
 
         {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex-1 flex-col justify-between">
@@ -53,6 +47,6 @@ export default function DashboardProfile() {
           </View>
         </View>
       </View>
-    </Wrapper>
+    </WrapperMain>
   );
 }
