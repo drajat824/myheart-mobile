@@ -1,8 +1,11 @@
 import { Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, View } from "react-native";
+import { useSafeAreaInsets } from "react-native-safe-area-context";
 
 export default function TabLayout() {
+  const insets = useSafeAreaInsets();
+
   return (
     <Tabs
       screenOptions={{
@@ -11,9 +14,10 @@ export default function TabLayout() {
         tabBarStyle: {
           backgroundColor: "#2b2b2b",
           borderTopWidth: 0,
-          height: 80,
+          height: 60 + insets.bottom,
           elevation: 0,
-          paddingTop: 15,
+          paddingBottom: insets.bottom,
+          paddingTop: 8
         },
         tabBarActiveTintColor: "white",
         tabBarInactiveTintColor: "#a0a0a0",
@@ -28,7 +32,7 @@ export default function TabLayout() {
           tabBarButton: ({ onPress, children, ...props }: any) => {
             const isFocused = props.focused ?? props["aria-selected"];
             return (
-              <Pressable {...props} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true }} className="flex-1 justify-center items-center active:bg-white active:opacity-60 rounded-full">
+              <Pressable {...props} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true}} className="w-fit h-fit justify-center items-center active:bg-white active:opacity-60 rounded-full">
                 <SymbolView name={{ ios: "text.book.closed", android: "library_books" }} tintColor={isFocused ? "#ffffff" : "#888"} size={35} />
               </Pressable>
             );

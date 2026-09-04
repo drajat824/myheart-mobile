@@ -12,7 +12,7 @@ export default function RecordsPeriodic() {
 
   return (
     <WrapperMain>
-      <View className="flex-col">
+      <View className="flex-col pb-8">
         {/* HEADER PAGES */}
         <RouterSub title="REKAM MEDIS" subTitle="PEMERIKSAAN BERKALA" />
 

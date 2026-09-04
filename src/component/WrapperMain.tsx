@@ -16,7 +16,8 @@ export default function WrapperMain({ children }: WrapperProps) {
         overScrollMode="never"
         bounces={false}
         contentContainerStyle={{
-          flexGrow: 1
+          flexGrow: 1,
+          paddingBottom: insets.bottom + 15
         }}
       >
         {children}

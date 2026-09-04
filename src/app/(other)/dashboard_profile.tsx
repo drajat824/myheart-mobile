@@ -8,7 +8,7 @@ export default function DashboardProfile() {
 
   return (
     <WrapperMain>
-      <View className="flex-1 flex-col justify-between">
+      <View className="flex-1 flex-col justify-between ">
         {/* HEADER PAGES */}
         <RouterSub title="PROFILE" />
 
