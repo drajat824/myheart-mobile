@@ -15,9 +15,7 @@ export default function Dashboard() {
 
   return (
     <WrapperMain>
-
       <View className="flex-col">
-
         {/* FLEX 1: HEADER PAGES */}
         <Header>
           <View className="flex-row items-center justify-between">
@@ -49,7 +47,7 @@ export default function Dashboard() {
             {/* Info BPM  */}
             <View className="flex flex-row items-end justify-between">
               <Text className="text-8xl text-theme-green">
-                90<Text className="text-normal font-normal text-black">bpm</Text>
+                91<Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
               <Text className="text-4xl pb-[4] text-theme-green font-semibold">NORMAL</Text>
             </View>

@@ -1,7 +1,7 @@
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useRouter } from "expo-router";
-import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { useEffect, useRef, useState } from "react";
+import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
 import { Cards, RouterSub, WrapperMain } from "../../component";
 
@@ -10,6 +10,39 @@ export default function DashboardSmartwatch() {
 
   const [isSwitchOn, setIsSwitchOn] = useState(true);
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
+
+  const [isRefresh, setIsRefresh] = useState(false);
+  const refreshAnimation = useRef(new Animated.Value(0)).current;
+
+  const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
+
+  useEffect(() => {
+    if (!isRefresh) {
+      refreshAnimation.stopAnimation();
+      refreshAnimation.setValue(0);
+      return;
+    }
+
+    const animation = Animated.loop(
+      Animated.timing(refreshAnimation, {
+        toValue: 1,
+        duration: 1200,
+        easing: Easing.linear,
+        useNativeDriver: true,
+      }),
+    );
+
+    animation.start();
+
+    return () => animation.stop();
+  }, [isRefresh, refreshAnimation]);
+
+  const handleRefresh = () => {
+    setIsRefresh(true);
+    setTimeout(() => {
+      setIsRefresh(false);
+    }, 5000);
+  };
 
   return (
     <WrapperMain>
@@ -24,8 +57,22 @@ export default function DashboardSmartwatch() {
               <Switch className="ml-[-10]" color="#017BFE" value={isSwitchOn} onValueChange={onToggleSwitch} />
               <Text className="text-label">BLUETOOTH AKTIF</Text>
             </View>
-            <Pressable className="flex flex-row gap-2 items-center active:opacity-50">
-              <MaterialDesignIcons name="refresh" size={45} color="#017BFE" />
+            <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={handleRefresh}>
+              <AnimatedMaterialIcon
+                name="refresh"
+                size={45}
+                color="#017BFE"
+                style={{
+                  transform: [
+                    {
+                      rotate: refreshAnimation.interpolate({
+                        inputRange: [0, 1],
+                        outputRange: ["0deg", "360deg"],
+                      }),
+                    },
+                  ],
+                }}
+              />
               <Text className="text-normal text-theme-blue font-semibold">SCAN</Text>
             </Pressable>
           </View>

@@ -13,6 +13,7 @@ const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fon
   return (
     <PaperButton
       mode="contained"
+      dark={true}
       buttonColor={buttonColor}
       onPress={onPress}
       disabled={disabled}
