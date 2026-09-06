@@ -17,7 +17,7 @@ export default function Records() {
           <Text className="text-title text-white">REKAM MEDIS</Text>
           <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
         </Header>
-        {/* FLEX 2: CARDS CONTENT  */}{" "}
+        {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex flex-col gap-4 mt-4">
           {/* CARDS MENU  */}
 

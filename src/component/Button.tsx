@@ -7,21 +7,27 @@ type Props = React.ComponentProps<typeof PaperButton> & {
   fontSize?: number;
   borderColor?: string;
   children?: React.ReactNode;
+  mode?: string;
+  activeOpacity?: any;
 };
 
-const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fontSize = 20, borderColor = "#038175", disabled = false, style, children, ...props }: Props) => {
+const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fontSize = 20, borderColor = "#038175", disabled = false, style, mode = "contained", children, ...props }: Props) => {
+  const isOutlined = mode === "outlined";
+
   return (
     <PaperButton
-      mode="contained"
+      mode={mode}
       dark={true}
-      buttonColor={buttonColor}
+      buttonColor={isOutlined ? "transparent" : buttonColor}
       onPress={onPress}
       disabled={disabled}
-      rippleColor="rgba(0, 0, 0, 0.12)"
+      activeOpacity={isOutlined ? 0.85 : undefined}
+      rippleColor={isOutlined ? `${borderColor}26` : "rgba(0, 0, 0, 0.12)"}
       style={[
         {
           borderRadius: 10,
           borderColor,
+          borderWidth: isOutlined ? 1 : 0,
         },
         style,
       ]}
@@ -29,7 +35,7 @@ const Button = ({ label = "", onPress, buttonColor = "#038175", height = 56, fon
         height,
         justifyContent: "center",
         alignItems: "center",
-        elevation: 4,
+        elevation: isOutlined ? 0 : 4,
       }}
       labelStyle={{
         fontSize,
