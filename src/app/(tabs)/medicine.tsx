@@ -1,14 +1,30 @@
+import { useModal } from "@/utils";
+import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
-import { useRouter } from "expo-router";
-import { useState } from "react";
+import { useEffect, useState } from "react";
 import { Pressable, Text, View } from "react-native";
-import { Button, Cards, Header, WrapperMain } from "../../component";
+import { Button, Cards, Header, Modal, WrapperMain } from "../../component";
 
 export default function Medicine() {
-  const router = useRouter();
+  const { openModal, closeModal } = useModal();
 
-  const [isSwitchOn, setIsSwitchOn] = useState(false);
-  const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
+  useEffect(() => {
+    const timer1 = setTimeout(() => {
+      openModal("root", true);
+    }, 5000);
+
+    return () => {
+      clearTimeout(timer1);
+    };
+  }, [openModal]);
+
+  const [date, setDate] = useState(new Date());
+
+  const formattedDate = date.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
 
   return (
     <WrapperMain>
@@ -22,10 +38,10 @@ export default function Medicine() {
         {/* FLEX 2: CARDS CONTENT  */}
         <View className="flex flex-col gap-4">
           {/* Dates Picker */}
-          <Pressable className="active:opacity-50" onPress={() => console.log("tes")}>
+          <Pressable className="active:opacity-50" onPress={() => openModal("date-picker")}>
             <Cards className="flex flex-row mt-4 items-center py-[15] gap-4">
               <MaterialDesignIcons className="ml-[-2]" name="calendar-range" size={30} color="#DB3546" />
-              <Text className="text-normal">25/08/2025</Text>
+              <Text className="text-normal">{formattedDate}</Text>
             </Cards>
           </Pressable>
 
@@ -111,6 +127,18 @@ export default function Medicine() {
           </Cards>
         </View>
       </View>
+
+      <Modal id="date-picker">
+        <DateTimePicker
+          value={date}
+          onValueChange={(event, selectedDate) => {
+            closeModal();
+            setDate(selectedDate);
+          }}
+          onDismiss={() => closeModal()}
+          mode="date"
+        />
+      </Modal>
     </WrapperMain>
   );
 }

@@ -5,7 +5,6 @@ import { useModal } from "../utils";
 
 type Props = {
   children: ReactNode;
-  dummy?: boolean;
   contentContainerStyle?: any;
   id?: string;
 };
@@ -16,8 +15,13 @@ const Modal: React.FC<Props> = ({ children, contentContainerStyle, id }) => {
   const isVisible = activeModalId === id;
 
   const [renderModal, setRenderModal] = useState(false);
-
   const anim = useRef(new Animated.Value(0)).current;
+
+  const childrenRef = useRef(children);
+
+  if (isVisible) {
+    childrenRef.current = children;
+  }
 
   useEffect(() => {
     if (isVisible) {
@@ -25,7 +29,7 @@ const Modal: React.FC<Props> = ({ children, contentContainerStyle, id }) => {
       anim.setValue(0);
       Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } else {
-      Animated.timing(anim, { toValue: 0, duration: 300, useNativeDriver: true }).start(({ finished }: { finished: boolean }) => {
+      Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }).start(({ finished }: { finished: boolean }) => {
         if (finished) setRenderModal(false);
       });
     }
@@ -36,7 +40,10 @@ const Modal: React.FC<Props> = ({ children, contentContainerStyle, id }) => {
   return (
     <Portal>
       <PaperModal visible={renderModal} contentContainerStyle={contentContainerStyle}>
-        <Animated.View style={{ opacity: anim, transform: [{ scale: anim }] }}>{children}</Animated.View>
+        <Animated.View style={{ opacity: anim, transform: [{ scale: anim }] }}>
+          {/* Gunakan referensi children yang dibekukan */}
+          {childrenRef.current}
+        </Animated.View>
       </PaperModal>
     </Portal>
   );

@@ -1,27 +1,28 @@
 import { Stack } from "expo-router";
+import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { Button, Cards, Modal } from "../component";
-import { ModalProvider } from "../utils";
+import { ModalProvider, useModal } from "../utils";
 import "./global.css";
 
 function RootLayoutContent() {
-  // const { openModal } = useModal();
+  const { openModal, closeModal } = useModal();
 
-  // useEffect(() => {
-  //   const timer1 = setTimeout(() => {
-  //     openModal("root", true);
-  //   }, 5000);
+  useEffect(() => {
+    // const timer1 = setTimeout(() => {
+    //   openModal("root", true);
+    // }, 5000);
 
-  //   const timer2 = setTimeout(() => {
-  //     openModal("superRoot", true);
-  //   }, 10000);
+    // const timer2 = setTimeout(() => {
+    //   openModal("superRoot", true);
+    // }, 10000);
 
-  //   return () => {
-  //     clearTimeout(timer1);
-  //     clearTimeout(timer2);
-  //   };
-  // }, [openModal]);
+    return () => {
+      // clearTimeout(timer1);
+      // clearTimeout(timer2);
+    };
+  }, [openModal]);
 
   return (
     <PaperProvider>
@@ -53,10 +54,10 @@ function RootLayoutContent() {
             <View className="my-4 h-0 border-t border-gray-500" />
             <View className="flex flex-row justify-between gap-1">
               <View className="flex-1">
-                <Button onPress={() => console.log("TES")}>SUDAH</Button>
+                <Button onPress={() => closeModal()}>SUDAH</Button>
               </View>
               <View className="flex-1">
-                <Button buttonColor="#DB3546" onPress={() => console.log("TES")}>
+                <Button buttonColor="#DB3546" onPress={() => closeModal()}>
                   BELUM
                 </Button>
               </View>
@@ -85,8 +86,8 @@ function RootLayoutContent() {
             <View className="my-4 h-0 border-t border-gray-500" />
 
             <View className="flex flex-col gap-3">
-              <Button onPress={() => console.log("TES")}>SUDAH</Button>
-              <Button onPress={() => console.log("TES")} mode="outlined" buttonColor="transparent" textColor="#DB3546" borderColor="#DB3546">
+              <Button onPress={() => closeModal()}>SUDAH</Button>
+              <Button onPress={() => closeModal()} mode="outlined" buttonColor="transparent" textColor="#DB3546" borderColor="#DB3546">
                 TUNDA 15 MENIT
               </Button>
             </View>
