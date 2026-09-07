@@ -1,8 +1,7 @@
-import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Pressable, Text, View } from "react-native";
-import { Cards, RouterSub, WrapperMain } from "../../component";
+import { Text, View } from "react-native";
+import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 
 export default function RecordsPeriodic() {
   const router = useRouter();
@@ -16,15 +15,10 @@ export default function RecordsPeriodic() {
         {/* HEADER PAGES */}
         <RouterSub title="REKAM MEDIS" subTitle="PEMERIKSAAN BERKALA" />
 
-        {/* FLEX 2: CARDS CONTENT  */}
-        <View className="flex flex-col gap-4">
+        <View className="flex flex-col gap-4 flex-1 mt-4">
           {/* Dates Picker */}
-          <Pressable className="active:opacity-50" onPress={() => console.log("tes")}>
-            <Cards className="flex flex-row mt-4 items-center py-[15] gap-4">
-              <MaterialDesignIcons className="ml-[-2]" name="calendar-range" size={30} color="#DB3546" />
-              <Text className="text-normal">25/08/2025</Text>
-            </Cards>
-          </Pressable>
+          <DatePicker onDateChange={(date) => console.log(date, "date")} onRangeChange={(prev, next) => console.log(prev, next, "range")} />
+
           {/* CARDS DATA */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-normal font-bold">HARI INI</Text>

@@ -29,7 +29,7 @@ const Modal: React.FC<Props> = ({ children, contentContainerStyle, id }) => {
       anim.setValue(0);
       Animated.timing(anim, { toValue: 1, duration: 300, useNativeDriver: true }).start();
     } else {
-      Animated.timing(anim, { toValue: 0, duration: 150, useNativeDriver: true }).start(({ finished }: { finished: boolean }) => {
+      Animated.timing(anim, { toValue: 0, duration: 200, useNativeDriver: true }).start(({ finished }: { finished: boolean }) => {
         if (finished) setRenderModal(false);
       });
     }

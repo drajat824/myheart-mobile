@@ -1,6 +1,5 @@
 import { Text, View } from "react-native";
-import { Button, Cards, Header, WrapperMain } from "../../component";
-import DatePicker from "../../component/DatePicker";
+import { Button, Cards, DatePicker, Header, WrapperMain } from "../../component";
 
 export default function Medicine() {
   return (
