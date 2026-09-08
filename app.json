@@ -22,6 +22,20 @@
           "modes": ["peripheral", "central"],
           "bluetoothAlwaysPermission": "Allow MyHeartz to connect to bluetooth devices"
         }
+      ],
+      [
+        "expo-build-properties",
+        {
+          "android": {
+            "minSdkVersion": 29,
+            "compileSdkVersion": 36,
+            "targetSdkVersion": 36
+          },
+          "ios": {
+            "deploymentTarget": "16.4",
+            "useFrameworks": "static"
+          }
+        }
       ]
     ],
     "experiments": {

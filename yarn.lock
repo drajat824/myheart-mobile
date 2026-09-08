@@ -2280,6 +2280,15 @@ expo-asset@~57.0.16:
     "@expo/image-utils" "^0.11.5"
     expo-constants "~57.0.17"
 
+expo-build-properties@~57.0.17:
+  version "57.0.17"
+  resolved "https://registry.yarnpkg.com/expo-build-properties/-/expo-build-properties-57.0.17.tgz#8abbbc554a65696ddea6ba1f3bf9dd152d6e298c"
+  integrity sha512-+qA5we2h1Gpnd24RGCR1amfSx7Mtf8glZ0jA5bbe1Nfdw9NdAIl+HPUqU7xyOUDKD0JWsHh9ap6yJG/jTs0tvA==
+  dependencies:
+    "@expo/schema-utils" "^57.0.2"
+    resolve-from "^5.0.0"
+    semver "^7.6.0"
+
 expo-constants@~57.0.16, expo-constants@~57.0.17:
   version "57.0.17"
   resolved "https://registry.yarnpkg.com/expo-constants/-/expo-constants-57.0.17.tgz#d8b900991f2a5e3c2567fc6e9d1d052527d4fa20"
@@ -3622,6 +3631,11 @@ react-is@^19.1.0:
   version "19.2.8"
   resolved "https://registry.yarnpkg.com/react-is/-/react-is-19.2.8.tgz#09826f9fbc187bc668e3e5c62edc001f804d5018"
   integrity sha512-s5un28nYxKJw5gvUHyW5PCC28CvBqLu9r3cWgzHT4Vo/5fqqkFcdRYsGcKf50WMPpjjFZS5d76fn3YCo2njKwQ==
+
+react-native-ble-plx@^3.5.1:
+  version "3.5.1"
+  resolved "https://registry.yarnpkg.com/react-native-ble-plx/-/react-native-ble-plx-3.5.1.tgz#344ce0d8803cf63d35b4f0588f18f795a05afea7"
+  integrity sha512-SxksmrUt9jG6DOarrrdkb5c/HBLSfZOKauo/9VQSSi3WJA4bmF78GkrtXrgSoGNk0m1ksacFTjB5DuL39xZq/g==
 
 react-native-css@^3.0.7:
   version "3.0.7"
