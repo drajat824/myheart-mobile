@@ -1,4 +1,5 @@
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { Buffer } from "buffer";
 import { useEffect, useRef, useState } from "react";
 import { Animated, Easing, PermissionsAndroid, Platform, Pressable, Text, View } from "react-native";
 import { BleManager, Device } from "react-native-ble-plx";
@@ -7,14 +8,18 @@ import { Cards, RouterSub, WrapperMain } from "../../component";
 const bleManager = new BleManager();
 
 export default function DashboardSmartwatch() {
-  const [isBlePoweredOn, setIsBlePoweredOn] = useState(true);
-  const onToggleSwitch = () => setIsBlePoweredOn(!isBlePoweredOn);
+  // const [isBlePoweredOn, setIsBlePoweredOn] = useState(true);
+  // const onToggleSwitch = () => setIsBlePoweredOn(!isBlePoweredOn);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
+  const subscriptions: any[] = [];
+  const connectedDevice = useRef<string | null>(null);
+  const [sensorValue, setSensorValue] = useState<number | null>(null);
 
   const refreshAnimation = useRef(new Animated.Value(0)).current;
   const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
+  console.log(devices);
 
   useEffect(() => {
     if (!isScanning) {
@@ -50,6 +55,57 @@ export default function DashboardSmartwatch() {
     return true;
   };
 
+  const connectToDevice = async (device: Device) => {
+    stopScan();
+
+    try {
+      await bleManager.connectToDevice(device.id);
+      await device.discoverAllServicesAndCharacteristics();
+      connectedDevice.current = device.id;
+      console.log("Connected to device:", device.id);
+
+      const services = await device.services();
+
+      for (const service of services) {
+        const characteristics = await device.characteristicsForService(service.uuid);
+
+        for (const characteristic of characteristics) {
+          if (characteristic.isNotifiable || characteristic.isIndicatable) {
+            const subscription = device.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
+              if (error) {
+                console.error("Failed to monitor characteristic:", error);
+                return;
+              }
+
+              const value = monitoredCharacteristic?.value;
+              if (!value) return;
+
+              const buffer = Buffer.from(value, "base64");
+              const bytes = Array.from(buffer);
+
+              if (bytes.length > 1) {
+                const sensorValue = bytes[1];
+                console.log("Nilai Sensor:", sensorValue, " BPM");
+                setSensorValue(sensorValue);
+              }
+            });
+
+            subscriptions.push(subscription);
+          }
+        }
+      }
+
+      return { device };
+    } catch (error) {
+      console.error("Failed to connect:", error);
+    }
+  };
+
+  const stopScan = async () => {
+    bleManager.stopDeviceScan();
+    setIsScanning(false);
+  };
+
   const startScan = async () => {
     const hasPermission = await requestAndroidPermissions();
     if (!hasPermission) return;
@@ -80,6 +136,20 @@ export default function DashboardSmartwatch() {
     }, 10000);
   };
 
+  useEffect(() => {
+    return () => {
+      stopScan();
+      subscriptions.forEach((sub) => sub.remove());
+      subscriptions.length = 0;
+
+      // Disconnect device
+      if (connectedDevice.current) {
+        bleManager.cancelDeviceConnection(connectedDevice.current).catch(console.error);
+        connectedDevice.current = null;
+      }
+    };
+  }, []);
+
   return (
     <WrapperMain>
       <View className="flex-1 flex-col justify-between">
@@ -87,13 +157,13 @@ export default function DashboardSmartwatch() {
         <RouterSub title="SMARTWATCH" />
 
         {/* FLEX 2: CARDS CONTENT  */}
-        <View className="flex-1 flex-col gap-6 mt-4">
+        <View className="flex-1 flex-col gap-3 mt-4">
           <View className="flex flex-row justify-start">
             {/* <View className="flex flex-col gap-2 items-start">
               <Switch className="ml-[-10]" color="#017BFE" value={isBlePoweredOn} onValueChange={onToggleSwitch} />
               <Text className="text-label">BLUETOOTH AKTIF</Text>
             </View> */}
-            <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={startScan}>
+            <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={() => (isScanning ? stopScan() : startScan())}>
               <AnimatedMaterialIcon
                 name="refresh"
                 size={45}
@@ -115,28 +185,27 @@ export default function DashboardSmartwatch() {
 
           {/* LIST DEVICES SMARTWATCH  */}
           <View className="flex-col gap-4">
-            <Cards pressable onPress={() => console.log("TES")} color="#017BFE80" className="flex flex-row justify-between items-center">
-              <View className="gap-2">
-                <Text className="text-normal font-bold">HUAWEI BAND 10</Text>
-                <Text className="text-normal font-light">C4:16:88:88:F7:87</Text>
-              </View>
-              <MaterialDesignIcons name="checkbox-marked-circle-outline" size={45} color="#fff" />
-            </Cards>
-            <Cards pressable onPress={() => console.log("TES")} className="flex flex-row justify-between items-center">
-              <View className="gap-2">
-                <Text className="text-normal font-bold">HUAWEI BAND 11</Text>
-                <Text className="text-normal font-light">C4:16:88:88:F7:87</Text>
-              </View>
-              <MaterialDesignIcons name="checkbox-marked-circle-outline" size={45} color="#fff" />
-            </Cards>
-            <Cards pressable onPress={() => console.log("TES")} className="flex flex-row justify-between items-center">
-              <View className="gap-2">
-                <Text className="text-normal font-bold">HUAWEI GT</Text>
-                <Text className="text-normal font-light">C4:16:88:88:F7:87</Text>
-              </View>
-              <MaterialDesignIcons name="checkbox-marked-circle-outline" size={45} color="#fff" />
-            </Cards>
+            {devices?.map((device) => {
+              const connectable = Boolean((device as any).isConnectable);
+              const isConnected = connectedDevice.current === device.id;
+
+              return (
+                <Cards key={device.id} pressable={connectable} color={isConnected ? "#017BFE80" : "#fff"} onPress={() => connectToDevice(device)} className={`flex flex-row justify-between items-center`}>
+                  <View className="gap-2">
+                    <Text className="text-normal font-bold">{device.localName}</Text>
+                    <Text className="text-normal font-light">{device.id}</Text>
+                    <Text className="text-xs text-black">{connectable ? (isConnected ? "Connected" : "Connectable") : "Not connectable"}</Text>
+                  </View>
+                  <MaterialDesignIcons name={connectable ? "bluetooth-connect" : "bluetooth-off"} size={36} color={connectable ? "#017BFE" : "#9CA3AF"} />
+                </Cards>
+              );
+            })}
           </View>
+          {sensorValue !== null && (
+            <View className="px-4 py-2 bg-white rounded-md">
+              <Text className="text-normal font-semibold">Detak Jantung: {sensorValue} BPM</Text>
+            </View>
+          )}
         </View>
       </View>
     </WrapperMain>
