@@ -14,7 +14,15 @@
       "output": "static"
     },
     "plugins": [
-      "expo-router"
+      "expo-router",
+      [
+        "react-native-ble-plx",
+        {
+          "isBackgroundEnabled": true,
+          "modes": ["peripheral", "central"],
+          "bluetoothAlwaysPermission": "Allow MyHeartz to connect to bluetooth devices"
+        }
+      ]
     ],
     "experiments": {
       "typedRoutes": true,
