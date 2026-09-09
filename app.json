@@ -36,7 +36,8 @@
             "useFrameworks": "static"
           }
         }
-      ]
+      ],
+      "@react-native-async-storage/expo-with-async-storage"
     ],
     "experiments": {
       "typedRoutes": true,
