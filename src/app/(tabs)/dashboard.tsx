@@ -1,14 +1,19 @@
+import { useHR } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
-import { useSafeAreaInsets } from "react-native-safe-area-context";
-import { Cards, CustomButton, Header, WrapperMain } from "../../component";
+import { Button, Cards, CustomButton, Header, WrapperMain } from "../../component";
 
 export default function Dashboard() {
   const router = useRouter();
-  const insets = useSafeAreaInsets();
+  const {
+    hrContext: { HeartRate },
+    dispatch,
+  } = useHR();
+
+  const dataHR: number | string = HeartRate && HeartRate.length > 0 ? HeartRate[HeartRate.length - 1].value : "-";
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
@@ -47,7 +52,8 @@ export default function Dashboard() {
             {/* Info BPM  */}
             <View className="flex flex-row items-end justify-between">
               <Text className="text-8xl text-theme-green">
-                91<Text className="text-normal font-normal text-black">bpm</Text>
+                {dataHR}
+                <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
               <Text className="text-4xl pb-[4] text-theme-green font-semibold">NORMAL</Text>
             </View>
@@ -93,6 +99,10 @@ export default function Dashboard() {
               </Pressable>
             </View>
           </Cards>
+
+          <Button buttonColor="#DB3546" onPress={() => dispatch({ type: "RESET" })}>
+            HAPUS DATA STORAGE
+          </Button>
 
           {/* CARDS 3D */}
           <View className="flex flex-col gap-4 mt-4">

@@ -1,3 +1,4 @@
+import { useHR } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { Buffer } from "buffer";
 import { useEffect, useRef, useState } from "react";
@@ -8,18 +9,15 @@ import { Cards, RouterSub, WrapperMain } from "../../component";
 const bleManager = new BleManager();
 
 export default function DashboardSmartwatch() {
-  // const [isBlePoweredOn, setIsBlePoweredOn] = useState(true);
-  // const onToggleSwitch = () => setIsBlePoweredOn(!isBlePoweredOn);
-
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const subscriptions: any[] = [];
   const connectedDevice = useRef<string | null>(null);
   const [sensorValue, setSensorValue] = useState<number | null>(null);
+  const { dispatch } = useHR();
 
   const refreshAnimation = useRef(new Animated.Value(0)).current;
   const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
-  console.log(devices);
 
   useEffect(() => {
     if (!isScanning) {
@@ -74,7 +72,7 @@ export default function DashboardSmartwatch() {
           if (characteristic.isNotifiable || characteristic.isIndicatable) {
             const subscription = device.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
               if (error) {
-                // console.error("Failed to monitor characteristic:", error);
+                console.error("Failed to monitor characteristic:", error);
                 return;
               }
 
@@ -86,8 +84,7 @@ export default function DashboardSmartwatch() {
 
               if (bytes.length > 1) {
                 const sensorValue = bytes[1];
-                console.log("Nilai Sensor:", sensorValue, " BPM");
-                setSensorValue(sensorValue);
+                dispatch({ type: "ADD_HR", payload: sensorValue });
               }
             });
 
