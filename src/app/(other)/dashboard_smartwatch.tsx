@@ -57,6 +57,7 @@ export default function DashboardSmartwatch() {
 
   const connectToDevice = async (device: Device) => {
     stopScan();
+    if (device?.id == connectedDevice.current) return;
 
     try {
       await bleManager.connectToDevice(device.id);
@@ -73,7 +74,7 @@ export default function DashboardSmartwatch() {
           if (characteristic.isNotifiable || characteristic.isIndicatable) {
             const subscription = device.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
               if (error) {
-                console.error("Failed to monitor characteristic:", error);
+                // console.error("Failed to monitor characteristic:", error);
                 return;
               }
 
@@ -203,7 +204,9 @@ export default function DashboardSmartwatch() {
           </View>
           {sensorValue !== null && (
             <View className="px-4 py-2 bg-white rounded-md">
-              <Text className="text-normal font-semibold">Detak Jantung: {sensorValue} BPM</Text>
+              <Text className="text-normal">
+                Detak Jantung: <Text className="font-bold">{sensorValue}</Text> BPM
+              </Text>
             </View>
           )}
         </View>

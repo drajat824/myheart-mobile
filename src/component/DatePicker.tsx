@@ -32,7 +32,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   const formatDateRange = (value: Date) =>
     value.toLocaleDateString("id-ID", {
       day: "numeric",
-      month: "short",
+      month: "numeric",
       year: "numeric",
     });
 
