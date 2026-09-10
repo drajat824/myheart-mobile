@@ -1,6 +1,6 @@
 import { startBackgroundTask, stopBackgroundTask } from "@/utils/backgroundTask";
-import { createContext, ReactNode, useEffect, useRef, useState } from "react";
-import { AppState } from "react-native";
+import { createContext, ReactNode, useCallback, useEffect, useRef, useState } from "react";
+import { AppState, AppStateStatus } from "react-native";
 import { BleManager, Device, Subscription } from "react-native-ble-plx";
 import { useHR } from "../hr";
 import { BleContextType } from "./ble.types";
@@ -12,8 +12,10 @@ export const BleContext = createContext<BleContextType | null>(null);
 export const BleProvider = ({ children }: { children: ReactNode }) => {
   const manager = useRef(new BleManager()).current;
   const { dispatch } = useHR();
+
   const subscriptions = useRef<Subscription[]>([]);
   const isIntentionalDisconnect = useRef(false);
+  const connectedDeviceIdRef = useRef<string | null>(null);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
@@ -21,63 +23,24 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
   const [connectedDeviceId, setConnectedDeviceId] = useState<string | null>(null);
   const [connectedDeviceName, setConnectedDeviceName] = useState<string | null>(null);
 
+  // Sync state to ref to avoid stale closures in listeners
+  const updateConnectedDeviceId = (id: string | null) => {
+    connectedDeviceIdRef.current = id;
+    setConnectedDeviceId(id);
+  };
+
   const clearSubscriptions = () => {
     subscriptions.current.forEach((sub) => sub.remove());
     subscriptions.current = [];
   };
 
-  useEffect(() => {
-    const conditionApp = AppState.addEventListener("change", async (nextAppState) => {
-      // 1. KETIKA MASUK BACKGROUND
-      if (nextAppState.match(/inactive|background/) && connectedDeviceId !== null) {
-        console.log("[AppState] → background: Melepas UI & Memulai Service");
-        isIntentionalDisconnect.current = true;
-
-        clearSubscriptions();
-        try {
-          await manager.cancelDeviceConnection(connectedDeviceId);
-        } catch (error) {
-          console.log("Cleanup UI connection error (diketahui):", error);
-        }
-
-        await startBackgroundTask(connectedDeviceId);
-      }
-      // 2. KETIKA KEMBALI KE FOREGROUND
-      else if (nextAppState === "active" && connectedDeviceId !== null) {
-        console.log("[AppState] → foreground: Mematikan Service & Reconnect UI");
-        await stopBackgroundTask();
-        setIsLoadingConnected(true);
-        await new Promise((resolve) => setTimeout(resolve, 2000));
-
-        try {
-          await connectToDevice(connectedDeviceId, true);
-          console.log("Berhasil reconnect ke UI!");
-        } catch (error) {
-          console.error("Gagal reconnect ke UI saat foreground:", error);
-        } finally {
-          isIntentionalDisconnect.current = false;
-        }
-      }
-    });
-
-    return () => {
-      conditionApp.remove();
-    };
-  }, [connectedDeviceId, manager]);
-
-  useEffect(() => {
-    return () => {
-      manager.destroy();
-    };
+  const stopScan = useCallback(() => {
+    manager.stopDeviceScan();
+    setIsScanning(false);
   }, [manager]);
 
   const requestPermissions = async (): Promise<boolean> => {
     return await requestBlePermissions();
-  };
-
-  const stopScan = () => {
-    manager.stopDeviceScan();
-    setIsScanning(false);
   };
 
   const startScan = async () => {
@@ -109,87 +72,154 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     }, 10000);
   };
 
-  const connectToDevice = async (device: Device | string | null, isReconnect = false) => {
-    if (!isLoadingConnected) {
-      setIsLoadingConnected(true);
-    }
+  const connectToDevice = useCallback(
+    async (device: Device | string | null, isReconnect = false) => {
+      if (!device) return;
+      stopScan();
 
-    if (!device) return;
-    stopScan();
-    const targetDeviceId = typeof device === "string" ? device : device.id;
+      const targetDeviceId = typeof device === "string" ? device : device.id;
+      if (connectedDeviceIdRef.current === targetDeviceId && !isReconnect) return;
 
-    if (connectedDeviceId === targetDeviceId && !isReconnect) return;
+      if (!isLoadingConnected) setIsLoadingConnected(true);
 
-    try {
-      clearSubscriptions();
+      try {
+        clearSubscriptions();
+        setIsLoadingConnected(true);
 
-      const connectedDevice = await manager.connectToDevice(targetDeviceId);
-      await connectedDevice.discoverAllServicesAndCharacteristics();
+        const connectedDevice = await manager.connectToDevice(targetDeviceId);
+        await connectedDevice.discoverAllServicesAndCharacteristics();
+        setConnectedDeviceName(connectedDevice.name);
+        updateConnectedDeviceId(connectedDevice.id);
 
-      setConnectedDeviceName(connectedDevice.name);
-      setConnectedDeviceId(connectedDevice.id);
+        // Remove old disconnect listener before setting a new one
+        const disconnectSub = manager.onDeviceDisconnected(targetDeviceId, () => {
+          if (isIntentionalDisconnect.current) {
+            console.log("[BLE] Intentional disconnect for background operation.");
+            return;
+          }
+          console.log("[BLE] Unexpected disconnect. Resetting connection state.");
+          updateConnectedDeviceId(null);
+          setConnectedDeviceName(null);
+          setIsLoadingConnected(false);
+        });
 
-      manager.onDeviceDisconnected(targetDeviceId, () => {
-        if (isIntentionalDisconnect.current) {
-          console.log("[BLE] Disconnect sengaja untuk background. State ID dipertahankan.");
-          return;
-        }
-        console.log("[BLE] Disconnect tak terduga. Resetting state.");
-        setConnectedDeviceId(null);
-        setConnectedDeviceName(null);
-        startScan();
-      });
+        subscriptions.current.push(disconnectSub);
 
-      const services = await connectedDevice.services();
+        const services = await connectedDevice.services();
 
-      for (const service of services) {
-        const characteristics = await connectedDevice.characteristicsForService(service.uuid);
+        for (const service of services) {
+          const characteristics = await connectedDevice.characteristicsForService(service.uuid);
 
-        for (const characteristic of characteristics) {
-          if (characteristic.isNotifiable || characteristic.isIndicatable) {
-            const conditionApp = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
-              if (error) {
-                console.error("Failed to monitor characteristic:", error);
-                return;
-              }
+          for (const characteristic of characteristics) {
+            if (characteristic.isNotifiable || characteristic.isIndicatable) {
+              const sub = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
+                if (error) {
+                  console.error("Failed to monitor characteristic:", error);
+                  return;
+                }
 
-              const value = monitoredCharacteristic?.value;
-              if (!value) return;
+                const value = monitoredCharacteristic?.value;
+                if (!value) return;
 
-              const sensorValue = parseHeartRateValue(value);
-              setIsLoadingConnected(false);
-              if (sensorValue !== null) {
-                dispatch({ type: "ADD_HR", payload: sensorValue });
-              }
-            });
+                const sensorValue = parseHeartRateValue(value);
+                setIsLoadingConnected(false);
+                if (sensorValue !== null) {
+                  dispatch({ type: "ADD_HR", payload: sensorValue });
+                }
+              });
 
-            subscriptions.current.push(conditionApp);
+              subscriptions.current.push(sub);
+            }
           }
         }
+      } catch (error) {
+        console.error("Failed to connect:", error);
+        setIsLoadingConnected(false);
+        if (!isReconnect) {
+          updateConnectedDeviceId(null);
+          setConnectedDeviceName(null);
+        }
+        throw error;
       }
-    } catch (error) {
-      console.error("Failed to connect:", error);
-      setIsLoadingConnected(false);
-      setConnectedDeviceId(null);
-      setConnectedDeviceName(null);
-      throw error;
-    }
-  };
+    },
+    [dispatch, manager, stopScan],
+  );
 
   const disconnectDevice = async () => {
-    isIntentionalDisconnect.current = false; // Disconnect manual oleh user
+    isIntentionalDisconnect.current = false;
     clearSubscriptions();
 
-    if (connectedDeviceId) {
+    if (connectedDeviceIdRef.current) {
       try {
-        await manager.cancelDeviceConnection(connectedDeviceId);
+        await manager.cancelDeviceConnection(connectedDeviceIdRef.current);
       } catch (error) {
         console.error("Disconnect Error:", error);
       }
-      setConnectedDeviceId(null);
+      updateConnectedDeviceId(null);
       setConnectedDeviceName(null);
     }
   };
+
+  // AppState management for seamless UI <-> Background handoff
+  useEffect(() => {
+    const handleAppStateChange = async (nextAppState: AppStateStatus) => {
+      const activeId = connectedDeviceIdRef.current;
+
+      if (nextAppState.match(/inactive|background/) && activeId) {
+        console.log("[AppState] Background transition: Tearing down UI connection & starting service");
+        isIntentionalDisconnect.current = true;
+        clearSubscriptions();
+
+        try {
+          await manager.cancelDeviceConnection(activeId);
+        } catch (error) {
+          console.log("Cleanup UI connection info:", error);
+        }
+
+        await startBackgroundTask(activeId);
+      } else if (nextAppState === "active" && activeId) {
+        console.log("[AppState] Foreground transition: Checking BLE status...");
+
+        try {
+          await stopBackgroundTask();
+          const isConnected = await manager.isDeviceConnected(activeId);
+
+          if (isConnected) {
+            console.log("[AppState] Device masih aktif, melakukan reconnect UI...");
+            isIntentionalDisconnect.current = false;
+            await new Promise((resolve) => setTimeout(resolve, 1500));
+            await connectToDevice(activeId, true);
+          } else {
+            console.log("[AppState] Device sudah tidak aktif/terputus. Resetting state UI.");
+            isIntentionalDisconnect.current = false;
+            clearSubscriptions();
+            updateConnectedDeviceId(null);
+            setConnectedDeviceName(null);
+            setIsLoadingConnected(false);
+          }
+        } catch (error) {
+          console.error("Gagal memeriksa status/reconnect saat foreground:", error);
+          updateConnectedDeviceId(null);
+          setConnectedDeviceName(null);
+          setIsLoadingConnected(false);
+        }
+      }
+    };
+
+    const subscription = AppState.addEventListener("change", handleAppStateChange);
+
+    return () => {
+      subscription.remove();
+    };
+  }, [connectToDevice, manager]);
+
+  // Clean up BleManager on unmount
+  useEffect(() => {
+    return () => {
+      clearSubscriptions();
+      manager.destroy();
+    };
+  }, [manager]);
 
   return (
     <BleContext.Provider
