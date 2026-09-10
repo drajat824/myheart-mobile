@@ -48,9 +48,11 @@ export const backgroundTask = async (taskDataArguments: any) => {
               if (isStopping || error.message?.includes("disconnected")) {
                 monitorSubscription.remove();
                 console.log("[BG BLE] Monitor dihentikan secara normal.");
-                await BackgroundService.updateNotification({
-                  taskDesc: `Device terputus`,
-                });
+                if (BackgroundService.isRunning()) {
+                  await BackgroundService.updateNotification({
+                    taskDesc: `Device terputus`,
+                  });
+                }
                 return;
               }
               console.error("[BG BLE Error Real]:", error);

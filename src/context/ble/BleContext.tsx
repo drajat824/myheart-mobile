@@ -114,7 +114,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
             if (characteristic.isNotifiable || characteristic.isIndicatable) {
               const sub = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
                 if (error) {
-                  console.error("Failed to monitor characteristic:", error);
+                  // console.error("Failed to monitor characteristic:", error);
                   return;
                 }
 
