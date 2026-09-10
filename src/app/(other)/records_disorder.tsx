@@ -2,18 +2,6 @@ import { Text, View } from "react-native";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 
 export default function RecordsDisorder() {
-  // const { openModal, closeModal } = useModal();
-
-  // useEffect(() => {
-  //   const timer1 = setTimeout(() => {
-  //     openModal("root", true);
-  //   }, 3000);
-
-  //   return () => {
-  //     clearTimeout(timer1);
-  //   };
-  // }, [openModal]);
-
   return (
     <WrapperMain>
       <View className="flex-col pb-8">

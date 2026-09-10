@@ -1,7 +1,7 @@
 import React, { ReactNode, useEffect, useRef, useState } from "react";
 import { Animated } from "react-native";
 import { Modal as PaperModal, Portal } from "react-native-paper";
-import { useModal } from "../utils";
+import { useModal } from "../context";
 
 type Props = {
   children: ReactNode;

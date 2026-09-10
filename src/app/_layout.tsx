@@ -4,7 +4,7 @@ import { useEffect } from "react";
 import { Text, View } from "react-native";
 import { PaperProvider } from "react-native-paper";
 import { Button, Cards, Modal } from "../component";
-import { ModalProvider, useModal } from "../utils";
+import { ModalProvider, useModal } from "../context";
 import "./global.css";
 
 function RootLayoutContent() {

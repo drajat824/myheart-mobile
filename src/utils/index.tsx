@@ -1,3 +1,3 @@
-import { ModalProvider, useModal } from "./ModalContext";
+import { backgroundOptions, backgroundTask } from "./backgroundTask";
 
-export { ModalProvider, useModal };
+export { backgroundOptions, backgroundTask };

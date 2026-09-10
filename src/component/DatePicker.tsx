@@ -2,7 +2,7 @@ import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useMemo, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
-import { useModal } from "../utils";
+import { useModal } from "../context";
 import Cards from "./Cards";
 import Modal from "./Modal";
 

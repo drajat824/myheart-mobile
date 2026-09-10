@@ -1,15 +1,12 @@
-import { useBle } from "@/context/BleContext"; // Import custom hook-nya
-import { useHR } from "@/context/HRContext";
+import { useBle } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Device } from "react-native-ble-plx";
-import { Cards, RouterSub, WrapperMain } from "../../component";
+import { Cards, Loading, RouterSub, WrapperMain } from "../../component";
 
 export default function DashboardSmartwatch() {
-  const { dispatch } = useHR();
-
-  const { devices, isScanning, connectedDeviceId, startScan, stopScan, connectToDevice, disconnectDevice } = useBle();
+  const { devices, isScanning, connectedDeviceId, startScan, stopScan, connectToDevice, disconnectDevice, isLoadingConnected } = useBle();
 
   const refreshAnimation = useRef(new Animated.Value(0)).current;
   const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
@@ -35,9 +32,7 @@ export default function DashboardSmartwatch() {
 
   const handleConnect = async (device: Device) => {
     try {
-      await connectToDevice(device, (hrValue) => {
-        dispatch({ type: "ADD_HR", payload: hrValue });
-      });
+      await connectToDevice(device);
     } catch (error) {
       console.log("Failed to connect");
     }
@@ -45,7 +40,9 @@ export default function DashboardSmartwatch() {
 
   // CleanUp Scanning
   useEffect(() => {
-    startScan();
+    if (connectedDeviceId == null) {
+      startScan();
+    }
     return () => {
       stopScan();
     };
@@ -104,6 +101,7 @@ export default function DashboardSmartwatch() {
           </View>
         </View>
       </View>
+      <Loading visible={isLoadingConnected} />
     </WrapperMain>
   );
 }
