@@ -17,6 +17,14 @@ type HRState = {
   HeartRate: HeartRateItem[];
   HeartRateAgregate: AggregateItem[];
   lastAggregatedTimestamp: number;
+  devices: WearableDevice[];
+};
+
+// DEVICES
+
+type WearableDevice = {
+  mac: string;
+  name: string;
 };
 
 type HRAction =
@@ -34,6 +42,10 @@ type HRAction =
   | {
       type: "INITIALIZE_STATE";
       payload: HRState;
+    }
+  | {
+      type: "CONNECT_DEVICES";
+      payload: WearableDevice[];
     };
 
 type HRContextType = {
@@ -45,6 +57,7 @@ const initialState: HRState = {
   HeartRate: [],
   HeartRateAgregate: [],
   lastAggregatedTimestamp: 0,
+  devices: [],
 };
 
 const STORAGE_KEY = "@myheartz_data_key";
@@ -88,6 +101,12 @@ function HReducer(state: HRState, action: HRAction): HRState {
         lastAggregatedTimestamp: currentTimestamp,
       };
     }
+
+    case "CONNECT_DEVICES":
+      return {
+        ...state,
+        devices: action.payload,
+      };
 
     case "INITIALIZE_STATE":
       return action.payload;
@@ -148,6 +167,10 @@ export function HRProvider({ children }: { children: ReactNode }) {
         console.log(`KEY: ${key}`);
         console.log("VALUE:", value);
         console.log("-----------------------------------");
+        // if (value) {
+        //   const parsed: HRState = JSON.parse(value);
+        //   console.log(parsed?.HeartRate[parsed?.HeartRate?.length - 1].value);
+        // }
       });
 
       console.log("===================================");
@@ -205,5 +228,3 @@ export const useHR = () => {
   }
   return context;
 };
-
-console.log(useHR);

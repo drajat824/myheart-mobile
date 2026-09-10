@@ -1,2 +1,4 @@
+import { BleProvider } from "./BleContext";
 import { HRProvider, useHR } from "./HRContext";
-export { HRProvider, useHR };
+export { BleProvider, HRProvider, useHR };
+

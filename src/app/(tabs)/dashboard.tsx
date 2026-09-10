@@ -1,4 +1,5 @@
 import { useHR } from "@/context";
+import { useBle } from "@/context/BleContext";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useRouter } from "expo-router";
 import { useState } from "react";
@@ -13,6 +14,7 @@ export default function Dashboard() {
     dispatch,
   } = useHR();
 
+  const { connectedDeviceName } = useBle();
   const dataHR: number | string = HeartRate && HeartRate.length > 0 ? HeartRate[HeartRate.length - 1].value : "-";
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
@@ -39,7 +41,7 @@ export default function Dashboard() {
             </View>
           </CustomButton>
           <Text className="text-normal text-white font-light">
-            DEVICE: <Text className="font-semibold">HUAWEI BAND 10</Text>
+            DEVICE: <Text className="font-semibold">{connectedDeviceName ? connectedDeviceName : "-"}</Text>
           </Text>
         </Header>
 
@@ -51,11 +53,11 @@ export default function Dashboard() {
 
             {/* Info BPM  */}
             <View className="flex flex-row items-end justify-between">
-              <Text className="text-8xl text-theme-green">
+              <Text className={`text-8xl ${connectedDeviceName ? "text-theme-green" : "text-yellow-500"}`}>
                 {dataHR}
                 <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
-              <Text className="text-4xl pb-[4] text-theme-green font-semibold">NORMAL</Text>
+              <Text className={`text-4xl pb-[4] ${connectedDeviceName ? "text-theme-green" : "text-yellow-500"} font-semibold`}>NORMAL</Text>
             </View>
 
             <View className="border border-gray-400 " />

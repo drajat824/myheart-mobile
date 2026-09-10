@@ -8,7 +8,8 @@
     "userInterfaceStyle": "automatic",
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.darojat.myheartmobile"
+      "package": "com.darojat.myheartmobile",
+      "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_CONNECTED_DEVICE", "WAKE_LOCK"]
     },
     "web": {
       "output": "static"
@@ -19,7 +20,7 @@
         "react-native-ble-plx",
         {
           "isBackgroundEnabled": true,
-          "modes": ["peripheral", "central"],
+          "modes": ["central"],
           "bluetoothAlwaysPermission": "Allow MyHeartz to connect to bluetooth devices"
         }
       ],
