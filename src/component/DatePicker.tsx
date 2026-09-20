@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 import { useModal } from "../context";
 import Cards from "./Cards";
@@ -14,25 +14,35 @@ type DatePickerProps = {
   onRangeChange?: (startDate: Date, endDate: Date) => void;
 };
 
-export default function DatePicker({ initialDate = new Date(), initialRangeEndDate, initialRangePicker = false, onDateChange, onRangeChange }: DatePickerProps) {
+export default function DatePicker({ initialDate, initialRangeEndDate, initialRangePicker = false, onDateChange, onRangeChange }: DatePickerProps) {
   const { openModal, closeModal } = useModal();
 
   const [isRangePicker, setIsRangePicker] = useState(initialRangePicker);
-  const [date, setDate] = useState(initialDate);
-  const [rangeStartDate, setRangeStartDate] = useState(initialDate);
-  const [rangeEndDate, setRangeEndDate] = useState(initialRangeEndDate || new Date(initialDate.getTime() + 7 * 24 * 60 * 60 * 1000));
 
-  // 🔴 SYNC FIX: Update state internal saat prop initialDate dari Parent berubah
+  // 1. Lazy Initialization: Hanya buat objek Date baru 1x saat komponen dipasang
+  const [date, setDate] = useState(() => initialDate || new Date());
+  const [rangeStartDate, setRangeStartDate] = useState(() => initialDate || new Date());
+  const [rangeEndDate, setRangeEndDate] = useState(() => initialRangeEndDate || new Date((initialDate || new Date()).getTime() + 7 * 24 * 60 * 60 * 1000));
+
+  // 2. Ref untuk mencatat timestamp prop sebelumnya
+  const prevInitialTimeRef = useRef<number | undefined>(initialDate?.getTime());
+  const prevInitialEndTimeRef = useRef<number | undefined>(initialRangeEndDate?.getTime());
+
+  // 3. Sync HANYA JIKA prop initialDate dari Parent BENAR-BENAR BERUBAH secara eksternal
   useEffect(() => {
-    if (initialDate) {
-      setDate(initialDate);
-      setRangeStartDate(initialDate);
+    const currentInitialTime = initialDate?.getTime();
+    if (currentInitialTime && currentInitialTime !== prevInitialTimeRef.current) {
+      prevInitialTimeRef.current = currentInitialTime;
+      setDate(initialDate!);
+      setRangeStartDate(initialDate!);
     }
   }, [initialDate]);
 
   useEffect(() => {
-    if (initialRangeEndDate) {
-      setRangeEndDate(initialRangeEndDate);
+    const currentEndTime = initialRangeEndDate?.getTime();
+    if (currentEndTime && currentEndTime !== prevInitialEndTimeRef.current) {
+      prevInitialEndTimeRef.current = currentEndTime;
+      setRangeEndDate(initialRangeEndDate!);
     }
   }, [initialRangeEndDate]);
 
@@ -56,7 +66,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
 
   const handleSingleDateChange = (event: any, selectedDate?: Date) => {
     closeModal("single-date-picker");
-    if (selectedDate) {
+    if (event.type === "set" && selectedDate) {
       setDate(selectedDate);
 
       const defaultEndDate = new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
@@ -69,7 +79,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
 
   const handleRangeStartChange = (event: any, selectedDate?: Date) => {
     closeModal("range-start-picker");
-    if (selectedDate) {
+    if (event.type === "set" && selectedDate) {
       let updatedEnd = rangeEndDate;
       if (selectedDate > rangeEndDate) {
         updatedEnd = selectedDate;
@@ -82,7 +92,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
 
   const handleRangeEndChange = (event: any, selectedDate?: Date) => {
     closeModal("range-end-picker");
-    if (selectedDate) {
+    if (event.type === "set" && selectedDate) {
       let updatedStart = rangeStartDate;
       if (selectedDate < rangeStartDate) {
         updatedStart = selectedDate;
@@ -94,15 +104,14 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   };
 
   const onToggleSwitch = () => {
-    setIsRangePicker((prev) => {
-      const nextState = !prev;
-      if (nextState) {
-        onRangeChange?.(rangeStartDate, rangeEndDate);
-      } else {
-        onDateChange?.(date);
-      }
-      return nextState;
-    });
+    const nextState = !isRangePicker;
+    setIsRangePicker(nextState);
+
+    if (nextState) {
+      onRangeChange?.(rangeStartDate, rangeEndDate);
+    } else {
+      onDateChange?.(date);
+    }
   };
 
   return (
@@ -141,7 +150,6 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
         </View>
       )}
 
-      {/* 🔴 EVENT FIX: Menggunakan `onChange` bukan `onValueChange` */}
       <Modal id="single-date-picker">
         <DateTimePicker value={date} onChange={handleSingleDateChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
