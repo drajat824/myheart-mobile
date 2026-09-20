@@ -88,7 +88,7 @@ export default function RecordsHR() {
       }
 
       // Tarik data terbaru dari API
-      fetchRecords();
+      onRefresh();
     };
 
     loadCacheAndFetch();
@@ -103,9 +103,9 @@ export default function RecordsHR() {
           <View className="flex flex-1">
             <DatePicker onDateChange={(date) => console.log(date, "date")} onRangeChange={(prev, next) => console.log(prev, next, "range")} />
           </View>
-          <ScrollView refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} />}>
+          <ScrollView className="flex-1 flex h-screen" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
             {Object.entries(groupedByDay).map(([date, data]) => (
-              <Cards key={date} className="flex flex-col gap-2">
+              <Cards key={date} className="flex flex-col gap-2 mb-3">
                 <Text className="text-normal font-bold">{date}</Text>
 
                 <View className="flex-col gap-3 mt-2">
