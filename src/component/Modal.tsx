@@ -36,6 +36,7 @@ const Modal: React.FC<Props> = ({ children, contentContainerStyle, id }) => {
   }, [isVisible, anim]);
 
   if (!renderModal) return null;
+  if (!isVisible) return null;
 
   return (
     <Portal>

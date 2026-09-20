@@ -47,11 +47,11 @@ export default function Dashboard() {
 
             {/* Info BPM  */}
             <View className="flex flex-row items-end justify-between">
-              <Text className={`text-8xl ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-350"}`}>
+              <Text className={`text-8xl ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-400"}`}>
                 {currentHR}
                 <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
-              <Text className={`text-4xl pb-[4] ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-350"} font-semibold`}>NORMAL</Text>
+              <Text className={`text-4xl pb-[4] ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-400"} font-semibold`}>NORMAL</Text>
             </View>
 
             <View className="border border-gray-400 " />

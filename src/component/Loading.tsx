@@ -1,6 +1,6 @@
 import { useModal } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
-import React from "react";
+import React, { memo, useEffect, useRef } from "react";
 import { Animated, Easing, View } from "react-native";
 import Modal from "./Modal";
 
@@ -10,9 +10,9 @@ interface LoadingProps {
 
 const Loading: React.FC<LoadingProps> = ({ visible }) => {
   const { openModal, closeModal } = useModal();
-  const rotation = React.useRef(new Animated.Value(0)).current;
+  const rotation = useRef(new Animated.Value(0)).current;
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (visible) {
       openModal("loading");
 
@@ -31,7 +31,10 @@ const Loading: React.FC<LoadingProps> = ({ visible }) => {
     }
 
     closeModal("loading");
-    rotation.setValue(0);
+
+    setTimeout(() => {
+      rotation.setValue(0);
+    }, 350);
   }, [visible, openModal, closeModal, rotation]);
 
   return (
@@ -56,4 +59,6 @@ const Loading: React.FC<LoadingProps> = ({ visible }) => {
   );
 };
 
-export default Loading;
+export default memo(Loading, (prevProps, nextProps) => {
+  return prevProps.visible === nextProps.visible;
+});
