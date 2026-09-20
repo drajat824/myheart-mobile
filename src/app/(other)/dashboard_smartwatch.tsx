@@ -131,14 +131,16 @@ export default function DashboardSmartwatch() {
 
       {/* Modal Warning Bluetooth / Permission */}
       <Modal id="bluetooth">
-        <View className="flex flex-col items-center gap-4 p-2">
-          <MaterialDesignIcons name="bluetooth-off" size={60} color="#DB3546" />
-          <Text className="text-2xl font-bold text-center">Bluetooth Tidak Aktif</Text>
-          <Text className="text-base text-center text-gray-600">Pastikan Bluetooth dan Izin Lokasi/Bluetooth pada perangkat Anda sudah diaktifkan untuk memindai smartwatch.</Text>
-          <Button buttonColor="#017BFE" onPress={() => closeModal("bluetooth")}>
-            TUTUP
-          </Button>
-        </View>
+        <Cards className="mx-8">
+          <View className="flex flex-col items-center gap-4 p-2">
+            <MaterialDesignIcons name="bluetooth-off" size={60} color="#DB3546" />
+            <Text className="text-2xl font-bold text-center">Bluetooth Tidak Aktif</Text>
+            <Text className="text-base text-center text-gray-600">Pastikan Bluetooth dan Izin Lokasi/Bluetooth pada perangkat Anda sudah diaktifkan untuk memindai smartwatch.</Text>
+            <Button buttonColor="#017BFE" onPress={() => closeModal("bluetooth")}>
+              TUTUP
+            </Button>
+          </View>
+        </Cards>
       </Modal>
     </WrapperMain>
   );

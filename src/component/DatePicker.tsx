@@ -1,6 +1,6 @@
 import DateTimePicker from "@react-native-community/datetimepicker";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
-import { useMemo, useState } from "react";
+import { useEffect, useMemo, useState } from "react";
 import { Pressable, Switch, Text, View } from "react-native";
 import { useModal } from "../context";
 import Cards from "./Cards";
@@ -21,6 +21,20 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   const [date, setDate] = useState(initialDate);
   const [rangeStartDate, setRangeStartDate] = useState(initialDate);
   const [rangeEndDate, setRangeEndDate] = useState(initialRangeEndDate || new Date(initialDate.getTime() + 7 * 24 * 60 * 60 * 1000));
+
+  // 🔴 SYNC FIX: Update state internal saat prop initialDate dari Parent berubah
+  useEffect(() => {
+    if (initialDate) {
+      setDate(initialDate);
+      setRangeStartDate(initialDate);
+    }
+  }, [initialDate]);
+
+  useEffect(() => {
+    if (initialRangeEndDate) {
+      setRangeEndDate(initialRangeEndDate);
+    }
+  }, [initialRangeEndDate]);
 
   const formatDate = (value: Date) =>
     value.toLocaleDateString("id-ID", {
@@ -79,7 +93,17 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
     }
   };
 
-  const onToggleSwitch = () => setIsRangePicker((prev) => !prev);
+  const onToggleSwitch = () => {
+    setIsRangePicker((prev) => {
+      const nextState = !prev;
+      if (nextState) {
+        onRangeChange?.(rangeStartDate, rangeEndDate);
+      } else {
+        onDateChange?.(date);
+      }
+      return nextState;
+    });
+  };
 
   return (
     <View className="flex flex-col gap-2">
@@ -117,16 +141,17 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
         </View>
       )}
 
+      {/* 🔴 EVENT FIX: Menggunakan `onChange` bukan `onValueChange` */}
       <Modal id="single-date-picker">
-        <DateTimePicker value={date} onValueChange={handleSingleDateChange} onDismiss={() => closeModal()} mode="date" />
+        <DateTimePicker value={date} onChange={handleSingleDateChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
 
       <Modal id="range-start-picker">
-        <DateTimePicker value={rangeStartDate} maximumDate={rangeEndDate} onValueChange={handleRangeStartChange} onDismiss={() => closeModal()} mode="date" />
+        <DateTimePicker value={rangeStartDate} maximumDate={rangeEndDate} onChange={handleRangeStartChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
 
       <Modal id="range-end-picker">
-        <DateTimePicker value={rangeEndDate} minimumDate={rangeStartDate} onValueChange={handleRangeEndChange} onDismiss={() => closeModal()} mode="date" />
+        <DateTimePicker value={rangeEndDate} minimumDate={rangeStartDate} onChange={handleRangeEndChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
     </View>
   );
