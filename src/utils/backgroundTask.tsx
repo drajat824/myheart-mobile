@@ -1,6 +1,8 @@
 import { parseHeartRateValue } from "@/context";
 import BackgroundService from "react-native-background-actions";
 import { BleManager } from "react-native-ble-plx";
+import { apiService } from "./apiService"; // Sesuaikan path jika berbeda
+import { formatTimestamp6 } from "./time";
 
 // Buat instance manager khusus untuk latar belakang
 const backgroundBleManager = new BleManager();
@@ -24,6 +26,10 @@ export const backgroundTask = async (taskDataArguments: any) => {
   let monitorSubscription: any = null;
   let isStopping = false;
 
+  // 1. Inisialisasi buffer lokal untuk background task
+  let hrBuffer: { value: number; timestamp: number }[] = [];
+  let lastPostTime = Date.now();
+
   if (!deviceId) {
     console.error("[BG BLE Error]: Device ID tidak ditemukan");
     return;
@@ -35,7 +41,6 @@ export const backgroundTask = async (taskDataArguments: any) => {
     await connectedDevice.discoverAllServicesAndCharacteristics();
     console.log("[BG BLE] Berhasil terhubung!");
 
-    // 2. Cari services dan characteristics secara otomatis
     const services = await connectedDevice.services();
 
     for (const service of services) {
@@ -46,8 +51,7 @@ export const backgroundTask = async (taskDataArguments: any) => {
           monitorSubscription = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, async (error, monitoredCharacteristic) => {
             if (error) {
               if (isStopping || error.message?.includes("disconnected")) {
-                monitorSubscription.remove();
-                console.log("[BG BLE] Monitor dihentikan secara normal.");
+                monitorSubscription?.remove();
                 if (BackgroundService.isRunning()) {
                   await BackgroundService.updateNotification({
                     taskDesc: `Device terputus`,
@@ -55,7 +59,6 @@ export const backgroundTask = async (taskDataArguments: any) => {
                 }
                 return;
               }
-              console.error("[BG BLE Error Real]:", error);
               return;
             }
 
@@ -64,6 +67,9 @@ export const backgroundTask = async (taskDataArguments: any) => {
 
             const sensorValue = parseHeartRateValue(value);
             if (sensorValue !== null) {
+              // 2. Simpan nilai ke buffer lokal
+              hrBuffer.push({ value: sensorValue, timestamp: Date.now() });
+
               if (BackgroundService.isRunning()) {
                 await BackgroundService.updateNotification({
                   taskDesc: `Detak Jantung: ${sensorValue} BPM`,
@@ -75,9 +81,40 @@ export const backgroundTask = async (taskDataArguments: any) => {
       }
     }
 
-    // 3. Jaga agar background task tetap berjalan selama servis aktif
+    // 3. Loop untuk menjaga task hidup SEKALIGUS melakukan agregasi 10 detik
     while (BackgroundService.isRunning()) {
-      await new Promise((resolve) => setTimeout(resolve, 1000));
+      await new Promise((resolve) => setTimeout(resolve, 1000)); // Delay 1 detik untuk optimasi CPU
+
+      const now = Date.now();
+
+      // Jika selisih waktu sudah mencapai 10 detik (10.000 ms)
+      if (now - lastPostTime >= 10000) {
+        if (hrBuffer.length > 0) {
+          // Kloning dan reset buffer agar tidak bentrok dengan data BLE yang masuk
+          const bufferCopy = [...hrBuffer];
+          hrBuffer = [];
+
+          // Hitung rata-rata
+          const sum = bufferCopy.reduce((acc, curr) => acc + curr.value, 0);
+          const averageHR = Math.round(sum / bufferCopy.length);
+
+          const payload = {
+            user_id: 1,
+            bpm: averageHR,
+            start_time: formatTimestamp6(bufferCopy[0].timestamp),
+            end_time: formatTimestamp6(bufferCopy[bufferCopy.length - 1].timestamp),
+          };
+          try {
+            // POST agregasi ke API
+            await apiService.post("/hr", payload); // Sesuaikan endpoint
+            console.log("[BG BLE] Agregasi berhasil diposting ke API:", payload);
+          } catch (error) {
+            console.error("[BG BLE Error] Gagal post agregasi:", error);
+          }
+        }
+
+        lastPostTime = now; // Reset timer
+      }
     }
   } catch (error) {
     console.error("[BG BLE Exception]:", error);
@@ -85,13 +122,7 @@ export const backgroundTask = async (taskDataArguments: any) => {
     isStopping = true;
     console.log("[BG BLE] Membersihkan resource background...");
 
-    if (monitorSubscription) {
-      try {
-        monitorSubscription.remove();
-      } catch (e) {
-        // ignore
-      }
-    }
+    monitorSubscription?.remove();
 
     try {
       await backgroundBleManager.cancelDeviceConnection(deviceId);
@@ -102,7 +133,6 @@ export const backgroundTask = async (taskDataArguments: any) => {
   }
 };
 
-// Menerima parameter deviceId
 export const startBackgroundTask = async (deviceId: string) => {
   try {
     if (!BackgroundService.isRunning()) {

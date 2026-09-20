@@ -1,120 +1,66 @@
+import { formatTimestamp6 } from "@/utils/time";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { createContext, useCallback, useEffect, useReducer, useState, type Dispatch, type ReactNode } from "react";
-import { HRAction, HRContextType, HRState } from "./hr.type";
-import { hrReducer, initialState } from "./hrReducer";
+import { createContext, useCallback, useEffect, useRef, useState, type ReactNode } from "react";
+import { apiService } from "../../utils/apiService"; // Sesuaikan path
+import { HeartRateItem, HRContextType } from "./hr.type";
 
-// 1. Pemisahan STORAGE_KEY
-const STORAGE_KEY_RAW = "@myheartz_raw_hr";
-const STORAGE_KEY_AGGREGATE = "@myheartz_aggregate_hr";
+const STORAGE_KEY_LATEST_HR = "@myheartz_latest_hr";
 
 export const HRContext = createContext<HRContextType | null>(null);
 
-// Helper function untuk debugging spesifik ke dua key baru
-const debugAsyncStorage = async () => {
-  try {
-    const rawData = await AsyncStorage.getItem(STORAGE_KEY_RAW);
-    const aggData = await AsyncStorage.getItem(STORAGE_KEY_AGGREGATE);
-
-    const parsedRaw = rawData ? JSON.parse(rawData) : [];
-    const parsedAgg = aggData ? JSON.parse(aggData) : { HeartRateAgregate: [], lastAggregatedTimestamp: 0 };
-
-    const latestHR = parsedRaw.length > 0 ? parsedRaw[parsedRaw.length - 1] : null;
-
-    console.log("========== DEBUG ASYNC STORAGE ==========");
-    console.log(`[RAW HR] Total Items: ${parsedRaw.length}`);
-    if (latestHR) {
-      console.log(`[RAW HR] Latest Value: ${latestHR.value} BPM | Time: ${new Date(latestHR.timestamp).toLocaleTimeString()}`);
-    }
-    // console.log(`[AGGREGATE] Total Buckets: ${parsedAgg.HeartRateAgregate.length}`);
-    // console.log(`[AGGREGATE] Last Timestamp: ${parsedAgg.lastAggregatedTimestamp}`);
-    console.log("=========================================");
-  } catch (error) {
-    console.error("Gagal membaca AsyncStorage:", error);
-  }
-};
-
 export function HRProvider({ children }: { children: ReactNode }) {
-  const [hrContext, realDispatch] = useReducer(hrReducer, initialState);
-  const [isReady, setIsReady] = useState(false);
+  const [currentHR, setCurrentHR] = useState(0);
+  const hrBuffer = useRef<HeartRateItem[]>([]);
 
-  const dispatch: Dispatch<HRAction> = useCallback((action) => {
-    realDispatch(action);
+  // Load cache HR terakhir saat aplikasi dibuka
+  useEffect(() => {
+    AsyncStorage.getItem(STORAGE_KEY_LATEST_HR).then((val) => {
+      if (val) setCurrentHR(Number(val));
+    });
   }, []);
 
-  // 2. Memuat data dari dua key terpisah saat awal
+  const addHR = useCallback((value: number) => {
+    setCurrentHR(value);
+    hrBuffer.current.push({ value, timestamp: Date.now() });
+
+    // Hanya simpan data terakhir ke AsyncStorage
+    AsyncStorage.setItem(STORAGE_KEY_LATEST_HR, value.toString()).catch(() => {});
+  }, []);
+
+  const resetStorage = useCallback(async () => {
+    await AsyncStorage.clear();
+    setCurrentHR(0);
+    hrBuffer.current = [];
+  }, []);
+
+  // Interval agregasi 10 detik dan POST API
   useEffect(() => {
-    const loadData = async () => {
+    const intervalId = setInterval(async () => {
+      const buffer = [...hrBuffer.current];
+      if (buffer.length === 0) return;
+
+      // Kosongkan buffer memori setelah data diambil
+      hrBuffer.current = [];
+
+      const sum = buffer.reduce((acc, curr) => acc + curr.value, 0);
+      const averageHR = Math.round(sum / buffer.length);
+
+      const payload = {
+        user_id: 1,
+        bpm: averageHR,
+        start_time: formatTimestamp6(buffer[0].timestamp),
+        end_time: formatTimestamp6(buffer[buffer.length - 1].timestamp),
+      };
+
       try {
-        const [storedRaw, storedAgg] = await Promise.all([AsyncStorage.getItem(STORAGE_KEY_RAW), AsyncStorage.getItem(STORAGE_KEY_AGGREGATE)]);
-
-        const rawList = storedRaw ? JSON.parse(storedRaw) : initialState.HeartRate;
-        const aggData = storedAgg
-          ? JSON.parse(storedAgg)
-          : {
-              HeartRateAgregate: initialState.HeartRateAgregate,
-              lastAggregatedTimestamp: initialState.lastAggregatedTimestamp,
-            };
-
-        // Gabungkan kembali menjadi satu HRState untuk Reducer
-        const restoredState: HRState = {
-          HeartRate: rawList,
-          HeartRateAgregate: aggData.HeartRateAgregate,
-          lastAggregatedTimestamp: aggData.lastAggregatedTimestamp,
-        };
-
-        dispatch({
-          type: "INITIALIZE_STATE",
-          payload: restoredState,
-        });
+        await apiService.post("/hr", payload);
       } catch (error) {
-        console.error("Gagal memuat data HR:", error);
-      } finally {
-        setIsReady(true);
+        console.error("Gagal post agregasi HR:", error);
       }
-    };
+    }, 10000); // 10 Detik
 
-    loadData();
-  }, [dispatch]);
+    return () => clearInterval(intervalId);
+  }, []);
 
-  // 3. Menyimpan data secara terpisah ke dua key
-  useEffect(() => {
-    if (!isReady) return;
-
-    const saveData = async () => {
-      try {
-        // Objek gabungan untuk data agregat
-        const aggregatePayload = {
-          HeartRateAgregate: hrContext.HeartRateAgregate,
-          lastAggregatedTimestamp: hrContext.lastAggregatedTimestamp,
-        };
-
-        await Promise.all([AsyncStorage.setItem(STORAGE_KEY_RAW, JSON.stringify(hrContext.HeartRate)), AsyncStorage.setItem(STORAGE_KEY_AGGREGATE, JSON.stringify(aggregatePayload))]);
-
-        await debugAsyncStorage();
-      } catch (error) {
-        console.error("Gagal menyimpan data HR:", error);
-      }
-    };
-
-    saveData();
-  }, [hrContext, isReady]);
-
-  // Running interval agregasi per 5 detik
-  useEffect(() => {
-    if (!isReady) return;
-
-    const intervalId = setInterval(() => {
-      const currentTimestamp = Date.now();
-      dispatch({
-        type: "AGGREGATE",
-        payload: currentTimestamp,
-      });
-    }, 5000);
-
-    return () => {
-      clearInterval(intervalId);
-    };
-  }, [dispatch, isReady]);
-
-  return <HRContext.Provider value={{ hrContext, dispatch }}>{children}</HRContext.Provider>;
+  return <HRContext.Provider value={{ currentHR, addHR, resetStorage }}>{children}</HRContext.Provider>;
 }

@@ -41,7 +41,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   const formattedRangeEndDate = useMemo(() => formatDateRange(rangeEndDate), [rangeEndDate]);
 
   const handleSingleDateChange = (event: any, selectedDate?: Date) => {
-    closeModal();
+    closeModal("single-date-picker");
     if (selectedDate) {
       setDate(selectedDate);
 
@@ -54,7 +54,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   };
 
   const handleRangeStartChange = (event: any, selectedDate?: Date) => {
-    closeModal();
+    closeModal("range-start-picker");
     if (selectedDate) {
       let updatedEnd = rangeEndDate;
       if (selectedDate > rangeEndDate) {
@@ -67,7 +67,7 @@ export default function DatePicker({ initialDate = new Date(), initialRangeEndDa
   };
 
   const handleRangeEndChange = (event: any, selectedDate?: Date) => {
-    closeModal();
+    closeModal("range-end-picker");
     if (selectedDate) {
       let updatedStart = rangeStartDate;
       if (selectedDate < rangeStartDate) {

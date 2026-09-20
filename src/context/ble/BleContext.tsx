@@ -1,7 +1,7 @@
-import { startBackgroundTask, stopBackgroundTask } from "@/utils/backgroundTask";
+import { startBackgroundTask, stopBackgroundTask } from "@/utils/backgroundTask"; // Sesuaikan path jika berbeda
 import { createContext, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
-import { BleManager, Device, Subscription } from "react-native-ble-plx";
+import { BleManager, Device, State, Subscription } from "react-native-ble-plx";
 import { useHR } from "../hr";
 import { BleContextType } from "./ble.types";
 import { requestBlePermissions } from "./blePermissions";
@@ -11,7 +11,7 @@ export const BleContext = createContext<BleContextType | null>(null);
 
 export const BleProvider = ({ children }: { children: ReactNode }) => {
   const manager = useRef(new BleManager()).current;
-  const { dispatch } = useHR();
+  const { addHR } = useHR(); // Diganti dari dispatch ke addHR
 
   const subscriptions = useRef<Subscription[]>([]);
   const isIntentionalDisconnect = useRef(false);
@@ -23,7 +23,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
   const [connectedDeviceId, setConnectedDeviceId] = useState<string | null>(null);
   const [connectedDeviceName, setConnectedDeviceName] = useState<string | null>(null);
 
-  // Sync state to ref to avoid stale closures in listeners
+  // Sync state ke ref untuk mencegah stale closures
   const updateConnectedDeviceId = (id: string | null) => {
     connectedDeviceIdRef.current = id;
     setConnectedDeviceId(id);
@@ -44,8 +44,18 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
   };
 
   const startScan = async () => {
+    // 1. Cek Izin Bluetooth & Lokasi
     const hasPermission = await requestPermissions();
-    if (!hasPermission) return;
+    if (!hasPermission) {
+      throw new Error("Izin Bluetooth/Lokasi tidak diberikan");
+    }
+
+    // 2. Cek apakah Hardware Bluetooth Aktif
+    const bleState = await manager.state();
+    if (bleState !== State.PoweredOn) {
+      setDevices([]);
+      throw new Error("Bluetooth tidak aktif");
+    }
 
     setDevices([]);
     setIsScanning(true);
@@ -75,6 +85,13 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
   const connectToDevice = useCallback(
     async (device: Device | string | null, isReconnect = false) => {
       if (!device) return;
+
+      // Cek apakah Bluetooth Aktif sebelum konek
+      const bleState = await manager.state();
+      if (bleState !== State.PoweredOn) {
+        throw new Error("Bluetooth tidak aktif");
+      }
+
       stopScan();
 
       const targetDeviceId = typeof device === "string" ? device : device.id;
@@ -91,13 +108,12 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         setConnectedDeviceName(connectedDevice.name);
         updateConnectedDeviceId(connectedDevice.id);
 
-        // Remove old disconnect listener before setting a new one
         const disconnectSub = manager.onDeviceDisconnected(targetDeviceId, () => {
           if (isIntentionalDisconnect.current) {
-            console.log("[BLE] Intentional disconnect for background operation.");
+            console.log("[BLE] Intentional disconnect untuk background operation.");
             return;
           }
-          console.log("[BLE] Unexpected disconnect. Resetting connection state.");
+          console.log("[BLE] Terputus secara tak terduga. Resetting connection state.");
           updateConnectedDeviceId(null);
           setConnectedDeviceName(null);
           setIsLoadingConnected(false);
@@ -113,10 +129,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
           for (const characteristic of characteristics) {
             if (characteristic.isNotifiable || characteristic.isIndicatable) {
               const sub = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
-                if (error) {
-                  // console.error("Failed to monitor characteristic:", error);
-                  return;
-                }
+                if (error) return;
 
                 const value = monitoredCharacteristic?.value;
                 if (!value) return;
@@ -124,7 +137,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
                 const sensorValue = parseHeartRateValue(value);
                 setIsLoadingConnected(false);
                 if (sensorValue !== null) {
-                  dispatch({ type: "ADD_HR", payload: sensorValue });
+                  addHR(sensorValue); // Menggunakan addHR
                 }
               });
 
@@ -133,21 +146,23 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
           }
         }
       } catch (error) {
-        console.error("Failed to connect:", error);
+        console.error("Gagal terhubung ke device:", error);
+        setDevices([]);
         setIsLoadingConnected(false);
         if (!isReconnect) {
           updateConnectedDeviceId(null);
           setConnectedDeviceName(null);
         }
-        throw error;
+        throw error; // Dilempar agar bisa ditangkap oleh handleConnect di UI
       }
     },
-    [dispatch, manager, stopScan],
+    [addHR, manager, stopScan, isLoadingConnected],
   );
 
   const disconnectDevice = async () => {
     isIntentionalDisconnect.current = false;
     clearSubscriptions();
+    setDevices([]);
 
     if (connectedDeviceIdRef.current) {
       try {
@@ -160,13 +175,13 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     }
   };
 
-  // AppState management for seamless UI <-> Background handoff
+  // Manajemen AppState untuk transisi UI <-> Background Service
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       const activeId = connectedDeviceIdRef.current;
 
       if (nextAppState.match(/inactive|background/) && activeId) {
-        console.log("[AppState] Background transition: Tearing down UI connection & starting service");
+        console.log("[AppState] Masuk background: Menghentikan koneksi UI & menjalankan service");
         isIntentionalDisconnect.current = true;
         clearSubscriptions();
 
@@ -178,19 +193,19 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
 
         await startBackgroundTask(activeId);
       } else if (nextAppState === "active" && activeId) {
-        console.log("[AppState] Foreground transition: Checking BLE status...");
+        console.log("[AppState] Masuk foreground: Memeriksa status BLE...");
 
         try {
           await stopBackgroundTask();
           const isConnected = await manager.isDeviceConnected(activeId);
 
           if (isConnected) {
-            console.log("[AppState] Device masih aktif, melakukan reconnect UI...");
+            console.log("[AppState] Device masih aktif, mereconnect UI...");
             isIntentionalDisconnect.current = false;
             await new Promise((resolve) => setTimeout(resolve, 1500));
             await connectToDevice(activeId, true);
           } else {
-            console.log("[AppState] Device sudah tidak aktif/terputus. Resetting state UI.");
+            console.log("[AppState] Device terputus. Resetting state UI.");
             isIntentionalDisconnect.current = false;
             clearSubscriptions();
             updateConnectedDeviceId(null);
@@ -198,10 +213,11 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
             setIsLoadingConnected(false);
           }
         } catch (error) {
-          console.error("Gagal memeriksa status/reconnect saat foreground:", error);
+          console.error("Gagal mengecek status/reconnect saat foreground:", error);
           updateConnectedDeviceId(null);
           setConnectedDeviceName(null);
           setIsLoadingConnected(false);
+          setDevices([]);
         }
       }
     };
@@ -213,11 +229,12 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     };
   }, [connectToDevice, manager]);
 
-  // Clean up BleManager on unmount
+  // Clean up BleManager saat unmount
   useEffect(() => {
     return () => {
       clearSubscriptions();
       manager.destroy();
+      setDevices([]);
     };
   }, [manager]);
 

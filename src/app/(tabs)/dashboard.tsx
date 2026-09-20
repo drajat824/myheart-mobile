@@ -4,17 +4,12 @@ import { useRouter } from "expo-router";
 import { useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
-import { Button, Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
+import { Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
 
 export default function Dashboard() {
   const router = useRouter();
-  const {
-    hrContext: { HeartRate },
-    dispatch,
-  } = useHR();
-
+  const { currentHR, resetStorage } = useHR();
   const { connectedDeviceName, isLoadingConnected } = useBle();
-  const dataHR: number | string = HeartRate && HeartRate.length > 0 ? HeartRate[HeartRate.length - 1].value : "-";
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
@@ -52,11 +47,11 @@ export default function Dashboard() {
 
             {/* Info BPM  */}
             <View className="flex flex-row items-end justify-between">
-              <Text className={`text-8xl ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-yellow-500"}`}>
-                {dataHR}
+              <Text className={`text-8xl ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-350"}`}>
+                {currentHR}
                 <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
-              <Text className={`text-4xl pb-[4] ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-yellow-500"} font-semibold`}>NORMAL</Text>
+              <Text className={`text-4xl pb-[4] ${connectedDeviceName && !isLoadingConnected ? "text-theme-green" : "text-gray-350"} font-semibold`}>NORMAL</Text>
             </View>
 
             <View className="border border-gray-400 " />
@@ -101,9 +96,9 @@ export default function Dashboard() {
             </View>
           </Cards>
 
-          <Button buttonColor="#DB3546" onPress={() => dispatch({ type: "RESET" })}>
+          {/* <Button buttonColor="#DB3546" onPress={() => dispatch({ type: "RESET" })}>
             HAPUS DATA STORAGE
-          </Button>
+          </Button> */}
 
           {/* CARDS 3D */}
           <View className="flex flex-col gap-4 mt-4">

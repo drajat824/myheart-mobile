@@ -1,16 +1,19 @@
-import { useBle } from "@/context";
+import { useBle, useModal } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useEffect, useRef } from "react";
 import { Animated, Easing, Pressable, Text, View } from "react-native";
 import { Device } from "react-native-ble-plx";
-import { Cards, Loading, RouterSub, WrapperMain } from "../../component";
+import { Button, Cards, Loading, Modal, RouterSub, WrapperMain } from "../../component";
 
 export default function DashboardSmartwatch() {
   const { devices, isScanning, connectedDeviceId, startScan, stopScan, connectToDevice, disconnectDevice, isLoadingConnected } = useBle();
 
+  const { openModal, closeModal } = useModal();
+
   const refreshAnimation = useRef(new Animated.Value(0)).current;
   const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
 
+  // Animasi tombol Refresh/Scan
   useEffect(() => {
     if (!isScanning) {
       refreshAnimation.stopAnimation();
@@ -30,18 +33,39 @@ export default function DashboardSmartwatch() {
     return () => animation.stop();
   }, [isScanning, refreshAnimation]);
 
+  // Handle startScan dengan penanganan Error / Bluetooth Mati / Permission
+  const handleStartScan = async () => {
+    try {
+      await startScan();
+    } catch (error) {
+      console.error("[BLE Scan Error]:", error);
+      openModal("bluetooth");
+    }
+  };
+
+  // Toggle Scanning manual
+  const handleToggleScan = () => {
+    if (isScanning) {
+      stopScan();
+    } else {
+      handleStartScan();
+    }
+  };
+
+  // Handle Koneksi Perangkat
   const handleConnect = async (device: Device) => {
     try {
       await connectToDevice(device);
     } catch (error) {
-      console.log("Failed to connect");
+      console.error("[BLE Connect Error]:", error);
+      openModal("bluetooth");
     }
   };
 
-  // CleanUp Scanning
+  // CleanUp & Auto Scan saat halaman dibuka
   useEffect(() => {
     if (connectedDeviceId == null) {
-      startScan();
+      handleStartScan();
     }
     return () => {
       stopScan();
@@ -55,7 +79,7 @@ export default function DashboardSmartwatch() {
 
         <View className="flex-1 flex-col gap-3 mt-4">
           <View className="flex flex-row justify-start">
-            <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={() => (isScanning ? stopScan() : startScan())}>
+            <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={handleToggleScan}>
               <AnimatedMaterialIcon
                 name="refresh"
                 size={45}
@@ -76,7 +100,7 @@ export default function DashboardSmartwatch() {
 
             {/* Tombol Disconnect Muncul Jika Ada Device Konek */}
             {connectedDeviceId && (
-              <Pressable className="ml-4 flex justify-center" onPress={disconnectDevice}>
+              <Pressable className="ml-4 flex justify-center active:opacity-50" onPress={disconnectDevice}>
                 <Text className="text-red-500 font-bold">DISCONNECT</Text>
               </Pressable>
             )}
@@ -88,9 +112,9 @@ export default function DashboardSmartwatch() {
               const isConnected = connectedDeviceId === device.id;
 
               return (
-                <Cards key={device.id} pressable={connectable} color={isConnected ? "#017BFE80" : "#fff"} onPress={() => handleConnect(device)} className={`flex flex-row justify-between items-center`}>
+                <Cards key={device.id} pressable={connectable} color={isConnected ? "#017BFE80" : "#fff"} onPress={() => handleConnect(device)} className="flex flex-row justify-between items-center">
                   <View className="gap-2">
-                    <Text className="text-normal font-bold">{device.localName}</Text>
+                    <Text className="text-normal font-bold">{device.localName || "Unknown Device"}</Text>
                     <Text className="text-normal font-light">{device.id}</Text>
                     <Text className="text-xs text-black">{connectable ? (isConnected ? "Connected" : "Connectable") : "Not connectable"}</Text>
                   </View>
@@ -101,7 +125,21 @@ export default function DashboardSmartwatch() {
           </View>
         </View>
       </View>
+
+      {/* Loading Modal saat koneksi */}
       <Loading visible={isLoadingConnected} />
+
+      {/* Modal Warning Bluetooth / Permission */}
+      <Modal id="bluetooth">
+        <View className="flex flex-col items-center gap-4 p-2">
+          <MaterialDesignIcons name="bluetooth-off" size={60} color="#DB3546" />
+          <Text className="text-2xl font-bold text-center">Bluetooth Tidak Aktif</Text>
+          <Text className="text-base text-center text-gray-600">Pastikan Bluetooth dan Izin Lokasi/Bluetooth pada perangkat Anda sudah diaktifkan untuk memindai smartwatch.</Text>
+          <Button buttonColor="#017BFE" onPress={() => closeModal("bluetooth")}>
+            TUTUP
+          </Button>
+        </View>
+      </Modal>
     </WrapperMain>
   );
 }

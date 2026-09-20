@@ -30,7 +30,7 @@ const Loading: React.FC<LoadingProps> = ({ visible }) => {
       return () => animation.stop();
     }
 
-    closeModal();
+    closeModal("loading");
     rotation.setValue(0);
   }, [visible, openModal, closeModal, rotation]);
 
