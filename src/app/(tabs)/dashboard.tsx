@@ -1,9 +1,13 @@
 import { useBle, useHR } from "@/context";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { Asset } from "expo-asset";
+import { ExpoWebGLRenderingContext, GLView } from "expo-gl";
 import { useRouter } from "expo-router";
-import { useState } from "react";
+import { Renderer, loadAsync } from "expo-three";
+import { useEffect, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
+import * as THREE from "three";
 import { Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
 
 export default function Dashboard() {
@@ -13,6 +17,98 @@ export default function Dashboard() {
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const onToggleSwitch = () => setIsSwitchOn(!isSwitchOn);
+
+  // Ref agar nilai terbaru dapat dibaca langsung di dalam animation loop WebGL
+  const currentHRRef = useRef(currentHR);
+  const isSwitchOnRef = useRef(isSwitchOn);
+
+  useEffect(() => {
+    currentHRRef.current = currentHR;
+  }, [currentHR]);
+
+  useEffect(() => {
+    isSwitchOnRef.current = isSwitchOn;
+  }, [isSwitchOn]);
+
+  // Fungsi Inisialisasi WebGL & Scene 3D
+  const onContextCreate = async (gl: ExpoWebGLRenderingContext) => {
+    const { drawingBufferWidth: width, drawingBufferHeight: height } = gl;
+
+    // 1. Scene & Camera Setup
+    const scene = new THREE.Scene();
+    const camera = new THREE.PerspectiveCamera(75, width / height, 0.1, 1000);
+    camera.position.z = 2.5;
+
+    // 2. Renderer Setup (Menggunakan Renderer expo-three dari three@0.162.0)
+    const renderer = new Renderer({ gl });
+    renderer.setSize(width, height);
+    renderer.setClearColor(0x000000, 0); // Background transparan
+
+    // 3. Pencahayaan (Lighting)
+    const ambientLight = new THREE.AmbientLight(0xffffff, 1.5);
+    scene.add(ambientLight);
+
+    const dirLight1 = new THREE.DirectionalLight(0xffffff, 2);
+    dirLight1.position.set(5, 5, 5);
+    scene.add(dirLight1);
+
+    const dirLight2 = new THREE.DirectionalLight(0xffffff, 1);
+    dirLight2.position.set(-5, -5, -5);
+    scene.add(dirLight2);
+
+    try {
+      // 4. Load Asset Model GLB Jantung
+      const asset = Asset.fromModule(require("../../../assets/images/realistic_human_heart.glb"));
+      await asset.downloadAsync();
+
+      // Passing asset.uri atau objek asset yang sudah di-download
+      const gltf = await loadAsync(asset.uri || asset);
+      const model = gltf.scene || gltf;
+
+      // Atur skala dasar dan posisi awal model
+      const baseScale = 1.0;
+      model.scale.set(baseScale, baseScale, baseScale);
+      model.position.set(0, 0, 0);
+      scene.add(model);
+
+      // 5. Animation Loop
+      let animationFrameId: number;
+      const clock = new THREE.Clock();
+
+      const render = () => {
+        animationFrameId = requestAnimationFrame(render);
+        const elapsedTime = clock.getElapsedTime();
+
+        // --- A. Logika Detak Jantung (Heartbeat Scale) ---
+        const rawHr = Number(currentHRRef.current);
+        const hr = Number.isFinite(rawHr) && rawHr > 0 ? rawHr : 60;
+        const bps = hr / 60;
+
+        // Efek denyut jantung menggunakan kombinasi gelombang sinus
+        const beatFactor = Math.pow(Math.sin(elapsedTime * bps * Math.PI), 4) * 0.12;
+        const currentScale = baseScale + beatFactor;
+        model.scale.set(currentScale, currentScale, currentScale);
+
+        // --- B. Logika Auto Rotate ---
+        if (isSwitchOnRef.current) {
+          model.rotation.y += 0.015;
+        }
+
+        renderer.render(scene, camera);
+        gl.endFrameEXP();
+      };
+
+      render();
+
+      return () => {
+        if (animationFrameId) {
+          cancelAnimationFrame(animationFrameId);
+        }
+      };
+    } catch (error) {
+      console.error("Gagal memuat 3D model jantung:", error);
+    }
+  };
 
   return (
     <WrapperMain>
@@ -96,10 +192,6 @@ export default function Dashboard() {
             </View>
           </Cards>
 
-          {/* <Button buttonColor="#DB3546" onPress={() => dispatch({ type: "RESET" })}>
-            HAPUS DATA STORAGE
-          </Button> */}
-
           {/* CARDS 3D */}
           <View className="flex flex-col gap-4 mt-4">
             <Cards className="flex flex-col gap-2">
@@ -107,10 +199,10 @@ export default function Dashboard() {
 
               {/* CONTENT  */}
               <View className="flex flex-col">
-                <View className="flex-1 justify-center items-center h-40">
-                  <Text className="font-italic">GAMBAR JANTUNG 3D</Text>
+                <View className="w-full h-72 rounded-lg overflow-hidden justify-center items-center bg-gray-50/50">
+                  <GLView style={{ width: "100%", height: "100%" }} onContextCreate={onContextCreate} />
                 </View>
-                <View className="flex-1 flex flex-row justify-between items-center">
+                <View className="flex-1 flex flex-row justify-between items-center mt-3">
                   <Text className="text-normal font-semibold">Rotasi Otomatis</Text>
                   <Switch color="#017BFE" value={isSwitchOn} onValueChange={onToggleSwitch} />
                 </View>
