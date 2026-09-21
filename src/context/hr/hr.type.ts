@@ -10,8 +10,14 @@ export type AggregateItem = {
   count: number;
 };
 
+export type SimulateStatus = "NORMAL" | "TAKIKARDIA" | "BRADIKARDIA";
+
 export type HRContextType = {
-  currentHR: number | "-";
+  currentHR: number;
+  rawHR: number;
+  simulateStatus: SimulateStatus;
+  displayStatus: SimulateStatus | "-";
+  setSimulateStatus: (status: SimulateStatus) => void;
   addHR: (value: number) => void;
   resetStorage: () => Promise<void>;
 };

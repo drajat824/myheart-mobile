@@ -1,6 +1,6 @@
 import { fetch } from "expo/fetch";
 
-const BASE_URL = "http://192.168.1.7:3000/api";
+const BASE_URL = "http://192.168.1.8:3000/api";
 
 export const apiService = {
   async post<T>(endpoint: string, body: Record<string, any>): Promise<T> {
