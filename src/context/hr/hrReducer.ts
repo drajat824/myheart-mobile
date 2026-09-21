@@ -1,5 +1,19 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { AggregateItem, HRAction, HRState } from "./hr.type";
+import { AggregateItem } from "./hr.type";
+
+// Local types
+type HeartRateItem = {
+  value: number;
+  timestamp: number;
+};
+
+export type HRState = {
+  HeartRate: HeartRateItem[];
+  HeartRateAgregate: AggregateItem[];
+  lastAggregatedTimestamp: number;
+};
+
+export type HRAction = { type: "ADD_HR"; payload: number } | { type: "AGGREGATE"; payload: number } | { type: "INITIALIZE_STATE"; payload: HRState } | { type: "RESET" };
 
 // Kalkulasi Agregasi
 const aggregateActions = (
@@ -43,7 +57,6 @@ export const initialState: HRState = {
   HeartRateAgregate: [],
   lastAggregatedTimestamp: 0,
 };
-
 export function hrReducer(state: HRState, action: HRAction): HRState {
   switch (action.type) {
     case "ADD_HR":

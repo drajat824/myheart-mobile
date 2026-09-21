@@ -32,6 +32,20 @@ const parseToDate = (dateVal: string | number | undefined): Date => {
   return new Date(formattedStr);
 };
 
+const formatDisplayDate = (dateKey: string): string => {
+  const [year, month, day] = dateKey.split("-");
+  if (!year || !month || !day) return dateKey;
+
+  const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
+  if (isNaN(parsedDate.getTime())) return dateKey;
+
+  return parsedDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+};
+
 export default function RecordsHR() {
   const [groupedByDay, setGroupedByDay] = useState<Record<string, AggregateRecord[]>>({});
   const [refreshing, setRefreshing] = useState(false);
@@ -92,6 +106,8 @@ export default function RecordsHR() {
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
       } catch (error) {
         console.error("Gagal menarik riwayat HR:", error);
+        // Jika gagal API, pastikan data dikosongkan agar konsisten dengan pesan UI
+        setGroupedByDay({});
       } finally {
         setRefreshing(false);
       }
@@ -103,6 +119,7 @@ export default function RecordsHR() {
   const handleDateChange = (date: Date) => {
     setSelectedDate(date);
     setSelectedRange(null); // Reset mode range
+    setGroupedByDay({}); // <--- REVISI: Kosongkan data langsung agar UI instan merespons
     fetchRecords({ date, range: null });
   };
 
@@ -110,6 +127,7 @@ export default function RecordsHR() {
   const handleRangeChange = (startDate: Date, endDate: Date) => {
     const range = { start: startDate, end: endDate };
     setSelectedRange(range);
+    setGroupedByDay({}); // <--- REVISI: Kosongkan data langsung agar UI instan merespons
     fetchRecords({ range });
   };
 
@@ -161,7 +179,7 @@ export default function RecordsHR() {
             ) : (
               Object.entries(groupedByDay).map(([date, data]) => (
                 <Cards key={date} className="flex flex-col gap-2 mb-3">
-                  <Text className="text-normal font-bold">{date}</Text>
+                  <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>
 
                   <View className="flex-col gap-3 mt-2">
                     {data
