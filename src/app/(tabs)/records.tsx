@@ -1,3 +1,4 @@
+import { HeartIssueRecord } from "@/context/hr";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useFocusEffect, useRouter } from "expo-router";
@@ -6,6 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import { Cards, Header, WrapperMain } from "../../component";
 
 const CACHE_KEY = "@myheartz_records_cache";
+const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
 
 type AggregateRecord = {
   id?: number;
@@ -29,42 +31,48 @@ export default function Records() {
   const router = useRouter();
 
   const [isDevice, setDevice] = useState(true);
+
   const [latestHRRecords, setLatestHRRecords] = useState<AggregateRecord[]>([]);
   const [latestDateText, setLatestDateText] = useState<string>("");
+  const [latestIssueRecords, setLatestIssueRecords] = useState<HeartIssueRecord[]>([]);
+  const [latestIssueDateText, setLatestIssueDateText] = useState<string>("");
 
   // Mengambil cuplikan data terbaru dari cache
   const loadCachedHR = useCallback(async () => {
     try {
+      // 1. Load HR Cache
       const cached = await AsyncStorage.getItem(CACHE_KEY);
       if (cached) {
         const parsedData: AggregateRecord[] = JSON.parse(cached);
         if (Array.isArray(parsedData) && parsedData.length > 0) {
-          // Urutkan data berdasarkan timestamp terbaru
-          const sorted = [...parsedData].sort((a, b) => {
-            const timeA = parseToDate(a.start_time || a.startTime).getTime();
-            const timeB = parseToDate(b.start_time || b.startTime).getTime();
-            return timeB - timeA;
-          });
-
-          // Ambil 3 data paling baru untuk cuplikan
+          const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
           setLatestHRRecords(preview);
 
-          // Format tanggal untuk header cuplikan
           const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
           if (!isNaN(topDate.getTime())) {
-            const formattedDate = topDate.toLocaleDateString("id-ID", {
-              weekday: "long",
-              day: "numeric",
-              month: "long",
-              year: "numeric",
-            });
-            setLatestDateText(formattedDate);
+            setLatestDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+          }
+        }
+      }
+
+      // 2. Load Disorder/Issues Cache (BARU DITAMBAHKAN)
+      const cachedIssues = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
+      if (cachedIssues) {
+        const parsedIssues: HeartIssueRecord[] = JSON.parse(cachedIssues);
+        if (Array.isArray(parsedIssues) && parsedIssues.length > 0) {
+          const sortedIssues = [...parsedIssues].sort((a, b) => parseToDate(b.recorded_at).getTime() - parseToDate(a.recorded_at).getTime());
+          const previewIssues = sortedIssues.slice(0, 3);
+          setLatestIssueRecords(previewIssues);
+
+          const topIssueDate = parseToDate(previewIssues[0].recorded_at);
+          if (!isNaN(topIssueDate.getTime())) {
+            setLatestIssueDateText(topIssueDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
           }
         }
       }
     } catch (error) {
-      console.error("Gagal membaca cache HR di Records:", error);
+      console.error("Gagal membaca cache di Records:", error);
     }
   }, []);
 
@@ -133,24 +141,25 @@ export default function Records() {
             <View className="flex flex-col gap-4">
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT GANGGUAN JANTUNG</Text>
-                <Text className="text-normal text-gray-500">Rabu, 25 Agustus 2026</Text>
+                <Text className="text-normal text-gray-500">{latestIssueDateText || "Belum ada riwayat"}</Text>
 
                 <View className="flex-col gap-3 mt-2">
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Takikardia:</Text>
-                    <Text className="text-xl font-semibold">08:00 WIB</Text>
-                  </View>
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Baradikardia:</Text>
-                    <Text className="text-xl font-semibold">10:00 WIB</Text>
-                  </View>
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Aritmia:</Text>
-                    <Text className="text-xl font-semibold">14:00 WIB</Text>
-                  </View>
+                  {latestIssueRecords.length > 0 ? (
+                    latestIssueRecords.map((item, index) => {
+                      const itemDate = parseToDate(item.recorded_at);
+                      const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+
+                      return (
+                        <View key={`${item.recorded_at}-${index}`} className="flex-row items-center gap-4">
+                          <View className="w-2 h-2 rounded-full bg-black" />
+                          <Text className="text-xl capitalize">{item.issue_type}:</Text>
+                          <Text className="text-xl font-semibold">{timeFormatted} WIB</Text>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text className="text-gray-400 italic">Belum ada gangguan tersimpan</Text>
+                  )}
                 </View>
 
                 <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
