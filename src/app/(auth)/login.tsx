@@ -28,9 +28,9 @@ export default function Login() {
             <CustomTextInput placeholder="Masukan kata sandi.." right={<TextInput.Icon icon="eye" />} />
           </View>
 
-          <Pressable onPress={() => router.push("/forgot")} className="active:opacity-40 self-end">
+          {/* <Pressable onPress={() => router.push("/forgot")} className="active:opacity-40 self-end">
             <Text className="text-xl font-semibold text-right text-theme-green">Lupa kata sandi?</Text>
-          </Pressable>
+          </Pressable> */}
         </View>
 
         {/* FLEX 3: Action Buttons */}
@@ -38,9 +38,9 @@ export default function Login() {
           <Button onPress={() => router.push("/dashboard")} mode="contained" buttonColor="#038175">
             MASUK
           </Button>
-          <Button onPress={() => router.push("/register")} mode="outlined" buttonColor="transparent" textColor="#038175" borderColor="#038175">
+          {/* <Button onPress={() => router.push("/register")} mode="outlined" buttonColor="transparent" textColor="#038175" borderColor="#038175">
             DAFTAR
-          </Button>
+          </Button> */}
         </View>
       </View>
     </WrapperAuth>

@@ -4,7 +4,7 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Pressable, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { Switch } from "react-native-paper";
 import { WebView } from "react-native-webview";
 import { Button, Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
@@ -187,9 +187,9 @@ export default function Dashboard() {
             <Text className="text-white text-4xl font-light">
               Hallo, <Text className="font-semibold">John Doe</Text>
             </Text>
-            <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
+            {/* <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
               <MaterialDesignIcons name="cog-outline" size={35} color="#FFFFFF" />
-            </Pressable>
+            </Pressable> */}
           </View>
 
           <Text className="text-normal text-white font-light">john_doe@gmail.com</Text>
