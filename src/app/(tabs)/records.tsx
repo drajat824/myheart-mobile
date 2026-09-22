@@ -23,8 +23,20 @@ type AggregateRecord = {
 const parseToDate = (dateVal: string | number | undefined): Date => {
   if (!dateVal) return new Date(NaN);
   if (typeof dateVal === "number") return new Date(dateVal);
-  const formattedStr = typeof dateVal === "string" && dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
-  return new Date(formattedStr);
+
+  if (typeof dateVal === "string") {
+    // Ubah spasi dari MySQL menjadi "T" (misal: "2026-09-22 22:18:00" -> "2026-09-22T22:18:00")
+    let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
+
+    // Jika belum ada penanda UTC (Z) atau Offset (+/-), tambahkan "Z"
+    if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
+      formattedStr += "Z"; // Menginformasikan ke JS bahwa ini adalah waktu UTC
+    }
+
+    return new Date(formattedStr);
+  }
+
+  return new Date(dateVal);
 };
 
 export default function Records() {
@@ -51,7 +63,14 @@ export default function Records() {
 
           const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
           if (!isNaN(topDate.getTime())) {
-            setLatestDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+            setLatestDateText(
+              topDate.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+            );
           }
         }
       }
@@ -67,7 +86,14 @@ export default function Records() {
 
           const topIssueDate = parseToDate(previewIssues[0].recorded_at);
           if (!isNaN(topIssueDate.getTime())) {
-            setLatestIssueDateText(topIssueDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+            setLatestIssueDateText(
+              topIssueDate.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+            );
           }
         }
       }
@@ -147,7 +173,12 @@ export default function Records() {
                   {latestIssueRecords.length > 0 ? (
                     latestIssueRecords.map((item, index) => {
                       const itemDate = parseToDate(item.recorded_at);
-                      const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+                      const timeFormatted = !isNaN(itemDate.getTime())
+                        ? itemDate.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "--:--";
 
                       return (
                         <View key={`${item.recorded_at}-${index}`} className="flex-row items-center gap-4">

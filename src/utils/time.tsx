@@ -18,3 +18,12 @@ export const formatTimestamp6 = (timestampMs: number): string => {
 export const formatTimestamp6MySQL = (timestampMs: number): string => {
   return new Date(timestampMs).toISOString().replace("T", " ").replace("Z", "000");
 };
+
+// Mendapatkan offset timezone perangkat saat ini
+export const getUserTimezoneOffset = (): string => {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const hours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, "0");
+  const minutes = String(Math.abs(offsetMinutes) % 60).padStart(2, "0");
+  return `${sign}${hours}:${minutes}`;
+};

@@ -4,16 +4,18 @@ import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
 import { useEffect, useMemo, useRef, useState } from "react";
-import { Text, View } from "react-native";
+import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
 import { WebView } from "react-native-webview";
 import { Button, Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
+import { HRAggregateChartCard } from "../../component/HRAggregateChartCard";
+import { HRRealtimeChartCard } from "../../component/HRRealtimeChartCard";
 
 export default function Dashboard() {
   const router = useRouter();
 
   // Menggunakan data global dari HR Context
-  const { currentHR, simulateStatus, displayStatus, setSimulateStatus } = useHR();
+  const { currentHR, simulateStatus, displayStatus, setSimulateStatus, realtimeChartData, aggregateChartData, resetStorage } = useHR();
   const { connectedDeviceName, isLoadingConnected } = useBle();
 
   const [isSwitchOn, setIsSwitchOn] = useState(false);
@@ -25,7 +27,7 @@ export default function Dashboard() {
     setIsSwitchOn((previous) => !previous);
   };
 
-  // 1. Load file GLB lokal dan ubah ke Base64 untuk dikirim ke WebView
+  // 1. Load file GLB lokal dan ubah ke Base64
   useEffect(() => {
     const loadModelBase64 = async () => {
       try {
@@ -45,7 +47,7 @@ export default function Dashboard() {
     loadModelBase64();
   }, []);
 
-  // 2. Kirim update Heart Rate dan status Rotasi ke WebView secara dinamis
+  // 2. Drive animasi 3D Heart dengan data currentHR realtime
   useEffect(() => {
     if (webViewRef.current) {
       const data = JSON.stringify({
@@ -56,7 +58,7 @@ export default function Dashboard() {
     }
   }, [currentHR, isSwitchOn]);
 
-  // 3. HTML Template untuk WebView
+  // 3. HTML Template untuk WebView (Menggunakan currentHR Realtime)
   const htmlContent = useMemo(() => {
     if (!modelBase64) return "";
     return `
@@ -187,9 +189,9 @@ export default function Dashboard() {
             <Text className="text-white text-4xl font-light">
               Hallo, <Text className="font-semibold">John Doe</Text>
             </Text>
-            {/* <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
+            <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
               <MaterialDesignIcons name="cog-outline" size={35} color="#FFFFFF" />
-            </Pressable> */}
+            </Pressable>
           </View>
 
           <Text className="text-normal text-white font-light">john_doe@gmail.com</Text>
@@ -210,7 +212,8 @@ export default function Dashboard() {
         </Header>
 
         {/* CONTENT */}
-        <View className="flex flex-col gap-2 mt-4">
+        <View className="flex flex-col gap-4 mt-4">
+          {/* 3. CARD HR SMARTWATCH */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-label">HR SMARTWATCH</Text>
             <View className="flex flex-row items-end justify-between">
@@ -219,13 +222,18 @@ export default function Dashboard() {
                 <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
 
-              {/* Tampilkan displayStatus di sini */}
               <Text className={`text-3xl font-light pb-[4] ${displayStatus !== "-" && connectedDeviceName && !isLoadingConnected ? (displayStatus === "NORMAL" ? "text-theme-green" : "text-red-400") : "text-gray-400"}`}>{displayStatus}</Text>
             </View>
           </Cards>
 
-          {/* 3D HEART MODEL VIA WEBVIEW */}
-          <View className="flex flex-col gap-4 mt-4 mb-10">
+          {/* 1. LIVE CHART HR REALTIME (DILENGKAPI CACHING 24 JAM) */}
+          <HRRealtimeChartCard data={realtimeChartData} />
+
+          {/* 2. CHART AGREGASI HR (PER 10 MENIT) */}
+          <HRAggregateChartCard data={aggregateChartData} />
+
+          {/* 4. MODEL 3D HEART VIA WEBVIEW */}
+          <View className="flex flex-col gap-4 mt-2 mb-10">
             <Cards className="flex flex-col gap-3">
               <Text className="text-label">MODEL JANTUNG</Text>
               <View className="flex flex-col">
@@ -246,7 +254,7 @@ export default function Dashboard() {
               </View>
             </Cards>
 
-            {/* SIMULASI GANGGUAN JANTUNG */}
+            {/* 5. SIMULASI GANGGUAN JANTUNG */}
             <Cards className="flex flex-col gap-3">
               <Text className="text-label">{`SIMULASI GANGGUAN\nJANTUNG`}</Text>
               <View className="flex flex-col gap-2 justify-center items-center mt-2">
@@ -260,6 +268,17 @@ export default function Dashboard() {
                   <Text style={{ color: simulateStatus === "BRADIKARDIA" ? "#fff" : "#038175" }}>BRADIKARDIA</Text>
                 </Button>
               </View>
+            </Cards>
+
+            {/* TOMBOL CLEAR ASYNCSTORAGE */}
+            <Cards className="flex flex-col gap-2 mb-10">
+              <Text className="text-label">PEMBERSIHAN CACHE</Text>
+              <CustomButton onPress={resetStorage} buttonColor="#DB3546" borderRadius={10}>
+                <View className="flex flex-row items-center justify-center gap-2 py-1">
+                  <MaterialDesignIcons name="delete-outline" size={24} color="#FFFFFF" />
+                  <Text className="text-white text-lg font-semibold">CLEAR ASYNCSTORAGE</Text>
+                </View>
+              </CustomButton>
             </Cards>
           </View>
         </View>

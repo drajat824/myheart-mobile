@@ -16,7 +16,18 @@ export type AggregateRecord = {
   end_time?: string | number;
 };
 
+// 1. Helper timezone offset dinamis
+const getUserTimezoneOffset = (): string => {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const hours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, "0");
+  const minutes = String(Math.abs(offsetMinutes) % 60).padStart(2, "0");
+  return `${sign}${hours}:${minutes}`;
+};
+
+// 2. Format tanggal lokal menjadi YYYY-MM-DD tanpa hardcode timezone
 const formatDateToParam = (date: Date): string => {
+  if (isNaN(date.getTime())) return "";
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
   const day = String(date.getDate()).padStart(2, "0");
@@ -26,8 +37,16 @@ const formatDateToParam = (date: Date): string => {
 const parseToDate = (dateVal: string | number | undefined): Date => {
   if (!dateVal) return new Date(NaN);
   if (typeof dateVal === "number") return new Date(dateVal);
-  const formattedStr = typeof dateVal === "string" && dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
-  return new Date(formattedStr);
+
+  if (typeof dateVal === "string") {
+    let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
+    if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
+      formattedStr += "Z";
+    }
+    return new Date(formattedStr);
+  }
+
+  return new Date(dateVal);
 };
 
 const formatDisplayDate = (dateKey: string): string => {
@@ -43,10 +62,7 @@ const formatDisplayDate = (dateKey: string): string => {
     year: "numeric",
   });
 
-  const today = new Date();
-  const isToday = today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
-
-  if (isToday) {
+  if (isDateToday(dateKey)) {
     return `Hari ini, ${formattedDate}`;
   }
 
@@ -54,14 +70,10 @@ const formatDisplayDate = (dateKey: string): string => {
 };
 
 const isDateToday = (dateKey: string): boolean => {
-  const [year, month, day] = dateKey.split("-");
-  if (!year || !month || !day) return false;
-
-  const today = new Date();
-  return today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+  if (!dateKey) return false;
+  return dateKey === formatDateToParam(new Date());
 };
 
-// Helper untuk menyaring data cache berdasarkan parameter filter yang aktif
 const filterRecordsByParams = (records: AggregateRecord[], date: Date, range: { start: Date; end: Date } | null): AggregateRecord[] => {
   if (!Array.isArray(records)) return [];
 
@@ -102,10 +114,7 @@ export default function RecordsHR() {
 
         if (isNaN(date.getTime())) return result;
 
-        const year = date.getFullYear();
-        const month = String(date.getMonth() + 1).padStart(2, "0");
-        const day = String(date.getDate()).padStart(2, "0");
-        const dateKey = `${year}-${month}-${day}`;
+        const dateKey = formatDateToParam(date);
 
         if (!result[dateKey]) result[dateKey] = [];
         result[dateKey].push(item);
@@ -127,25 +136,27 @@ export default function RecordsHR() {
           setIsLoading(true);
         }
 
-        let endpoint = "/hr";
+        // 3. Kirim timezone dinamis HP ke backend
+        const userTz = getUserTimezoneOffset();
+        let endpoint = `/hr-aggregation?user_id=1&timezone=${encodeURIComponent(userTz)}`;
+
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);
           const endStr = formatDateToParam(rangeFilter.end);
-          endpoint = `/hr?start_time=${startStr}&end_time=${endStr}`;
+          endpoint += `&start_time=${startStr}&end_time=${endStr}`;
         } else {
-          const dateStr = formatDateToParam(dateFilter);
-          endpoint = `/hr?date=${dateStr}`;
+          // Cukup kirimkan date string YYYY-MM-DD
+          const selectedStr = formatDateToParam(dateFilter);
+          endpoint += `&date=${selectedStr}`;
         }
 
         const data = await apiService.get<AggregateRecord[]>(endpoint);
         setGroupedByDay(groupData(data));
 
-        // Simpan data terbaru ke cache
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
       } catch (error) {
         console.error("Gagal menarik riwayat HR, mencoba memuat dari cache:", error);
 
-        // Fallback: Tampilkan data dari AsyncStorage jika server error/offline
         try {
           const cached = await AsyncStorage.getItem(CACHE_KEY);
           if (cached) {
@@ -191,7 +202,6 @@ export default function RecordsHR() {
     await fetchRecords({ isPullRefresh: true });
   }, [fetchRecords]);
 
-  // Initial load saat komponen di-mount
   useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
       const loadInitialData = async () => {
@@ -200,7 +210,6 @@ export default function RecordsHR() {
         setSelectedRange(null);
         setIsLoading(true);
 
-        // Muat cache awal (difilter khusus tanggal hari ini agar tidak flicker jika cache sebelumnya berisi range)
         try {
           const cached = await AsyncStorage.getItem(CACHE_KEY);
           if (cached) {
@@ -212,7 +221,6 @@ export default function RecordsHR() {
           console.error("Gagal membaca cache awal:", e);
         }
 
-        // Ambil data terbaru dari server
         await fetchRecords({ date: today, range: null, isPullRefresh: false });
       };
 
@@ -220,7 +228,6 @@ export default function RecordsHR() {
     });
   }, []);
 
-  // Optimasi Memoization untuk sorting data per hari dan urutan jam
   const sortedGroupedEntries = useMemo(() => {
     return Object.entries(groupedByDay)
       .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
@@ -267,6 +274,7 @@ export default function RecordsHR() {
                         const itemDate = parseToDate(rawStartTime);
                         const bpmValue = item.bpm ?? item.averageHR ?? 0;
 
+                        // 4. Hapus timeZone: "Asia/Jakarta" agar otomatis menyesuaikan jam HP/perangkat
                         const timeFormatted = !isNaN(itemDate.getTime())
                           ? itemDate.toLocaleTimeString("id-ID", {
                               hour: "2-digit",
@@ -278,7 +286,7 @@ export default function RecordsHR() {
                           <View key={`${rawStartTime}-${index}`} className="flex-row items-center gap-4 justify-between">
                             <View className="flex flex-row gap-3 items-center">
                               <View className="w-2 h-2 rounded-full bg-black" />
-                              <Text className="text-xl">{timeFormatted} WIB:</Text>
+                              <Text className="text-xl">{timeFormatted}:</Text>
                             </View>
                             <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
                           </View>

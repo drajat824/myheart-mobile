@@ -9,22 +9,38 @@ const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
 
 // Helpers format tanggal
 const formatDateToParam = (date: Date): string => {
-  const year = date.getFullYear();
-  const month = String(date.getMonth() + 1).padStart(2, "0");
-  const day = String(date.getDate()).padStart(2, "0");
-  return `${year}-${month}-${day}`;
+  if (isNaN(date.getTime())) return "";
+  return new Intl.DateTimeFormat("en-CA", {
+    timeZone: "Asia/Jakarta",
+    year: "numeric",
+    month: "2-digit",
+    day: "2-digit",
+  }).format(date);
 };
 
 const parseToDate = (dateVal: string | number | undefined): Date => {
   if (!dateVal) return new Date(NaN);
   if (typeof dateVal === "number") return new Date(dateVal);
-  const formattedStr = typeof dateVal === "string" && dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
-  return new Date(formattedStr);
+
+  if (typeof dateVal === "string") {
+    // Ubah spasi dari MySQL menjadi "T" (misal: "2026-09-22 22:18:00" -> "2026-09-22T22:18:00")
+    let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
+
+    // Jika belum ada penanda UTC (Z) atau Offset (+/-), tambahkan "Z"
+    if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
+      formattedStr += "Z"; // Menginformasikan ke JS bahwa ini adalah waktu UTC
+    }
+
+    return new Date(formattedStr);
+  }
+
+  return new Date(dateVal);
 };
 
 const formatDisplayDate = (dateKey: string): string => {
   const [year, month, day] = dateKey.split("-");
   if (!year || !month || !day) return dateKey;
+
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
 
@@ -34,10 +50,7 @@ const formatDisplayDate = (dateKey: string): string => {
     year: "numeric",
   });
 
-  const today = new Date();
-  const isToday = today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
-
-  if (isToday) {
+  if (isDateToday(dateKey)) {
     return `Hari ini, ${formattedDate}`;
   }
 
@@ -45,11 +58,9 @@ const formatDisplayDate = (dateKey: string): string => {
 };
 
 const isDateToday = (dateKey: string): boolean => {
-  const [year, month, day] = dateKey.split("-");
-  if (!year || !month || !day) return false;
-
-  const today = new Date();
-  return today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+  if (!dateKey) return false;
+  // Bandingkan kunci tanggal dengan tanggal hari ini dalam format Asia/Jakarta
+  return dateKey === formatDateToParam(new Date());
 };
 
 // Helper untuk menyaring data cache berdasarkan parameter filter yang aktif
@@ -73,6 +84,14 @@ const filterRecordsByParams = (records: HeartIssueRecord[], date: Date, range: {
       return formatDateToParam(itemDate) === dateStr;
     });
   }
+};
+
+const getUserTimezoneOffset = (): string => {
+  const offsetMinutes = -new Date().getTimezoneOffset();
+  const sign = offsetMinutes >= 0 ? "+" : "-";
+  const hours = String(Math.floor(Math.abs(offsetMinutes) / 60)).padStart(2, "0");
+  const minutes = String(Math.abs(offsetMinutes) % 60).padStart(2, "0");
+  return `${sign}${hours}:${minutes}`;
 };
 
 export default function RecordsDisorder() {
@@ -112,15 +131,25 @@ export default function RecordsDisorder() {
           setIsLoading(true);
         }
 
-        let endpoint = "/hr-issues";
+        const userTz = getUserTimezoneOffset();
+        let endpoint = `/hr-issues?user_id=1&timezone=${encodeURIComponent(userTz)}`;
 
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);
           const endStr = formatDateToParam(rangeFilter.end);
-          endpoint = `/hr-issues?start_time=${startStr}&end_time=${endStr}`;
+          endpoint += `&start_time=${startStr}&end_time=${endStr}`;
         } else {
-          const dateStr = formatDateToParam(dateFilter);
-          endpoint = `/hr-issues?date=${dateStr}`;
+          // WIB Hari H (00:00:00 - 23:59:59) sama dengan UTC (H-1 17:00:00 - H 16:59:59)
+          const selectedStr = formatDateToParam(dateFilter);
+
+          const startWIB = new Date(`${selectedStr}T00:00:00+07:00`);
+          const endWIB = new Date(`${selectedStr}T23:59:59+07:00`);
+
+          // Format ke UTC ISO string untuk query
+          const startUTC = startWIB.toISOString();
+          const endUTC = endWIB.toISOString();
+
+          endpoint += `&start_time=${startUTC}&end_time=${endUTC}`;
         }
 
         const data = await apiService.get<HeartIssueRecord[]>(endpoint);
@@ -246,7 +275,13 @@ export default function RecordsDisorder() {
                     <View className="flex-col gap-3 mt-2">
                       {data.map((item, index) => {
                         const itemDate = parseToDate(item.recorded_at);
-                        const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "--:--";
+                        const timeFormatted = !isNaN(itemDate.getTime())
+                          ? itemDate.toLocaleTimeString("id-ID", {
+                              hour: "2-digit",
+                              minute: "2-digit",
+                              timeZone: "Asia/Jakarta",
+                            })
+                          : "--:--";
 
                         return (
                           <View key={`${item.recorded_at}-${index}`} className="flex-row items-start gap-4 justify-between">

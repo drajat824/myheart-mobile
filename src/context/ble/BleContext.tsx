@@ -9,14 +9,23 @@ import { parseHeartRateValue } from "./bleUtils";
 
 export const BleContext = createContext<BleContextType | null>(null);
 
+// UUID Standard Heart Rate Service & Characteristic
+const HEART_RATE_SERVICE_UUID = "180d";
+const HEART_RATE_CHARACTERISTIC_UUID = "2a37";
+
 export const BleProvider = ({ children }: { children: ReactNode }) => {
   const manager = useRef(new BleManager()).current;
   const { addHR } = useHR();
 
+  // 1. STABILKAN addHR DENGAN REF
+  const addHRRef = useRef(addHR);
+  useEffect(() => {
+    addHRRef.current = addHR;
+  }, [addHR]);
+
   const subscriptions = useRef<Subscription[]>([]);
   const isIntentionalDisconnect = useRef(false);
 
-  // Single Reference & State untuk Perangkat Terhubung
   const connectedDeviceIdRef = useRef<string | null>(null);
   const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
 
@@ -26,7 +35,6 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
   const [isScanning, setIsScanning] = useState(false);
   const [isLoadingConnected, setIsLoadingConnected] = useState(false);
 
-  // Helper terpusat untuk memperbarui status koneksi
   const setConnectedDeviceState = (device: Device | null) => {
     setConnectedDevice(device);
     connectedDeviceIdRef.current = device ? device.id : null;
@@ -46,15 +54,16 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     return await requestBlePermissions();
   };
 
+  // 2. BEBASKAN DEPENDENCY DARI addHR
   const resetHrTimeout = useCallback(() => {
     if (hrTimeoutRef.current) {
       clearTimeout(hrTimeoutRef.current);
     }
     hrTimeoutRef.current = setTimeout(() => {
       console.log("[BLE] Tidak ada data HR masuk selama 2.5 detik.");
-      addHR(0);
+      addHRRef.current(0);
     }, 2500);
-  }, [addHR]);
+  }, []);
 
   const startScan = async () => {
     const hasPermission = await requestPermissions();
@@ -68,7 +77,6 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
       throw new Error("Bluetooth tidak aktif");
     }
 
-    // Jaga agar device yang sedang terhubung TIDAK terhapus dari daftar UI saat rescan
     setDevices(connectedDevice ? [connectedDevice] : []);
     setIsScanning(true);
 
@@ -115,7 +123,6 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         const connDevice = await manager.connectToDevice(targetDeviceId);
         await connDevice.discoverAllServicesAndCharacteristics();
 
-        // Simpan seluruh objek device terhubung
         setConnectedDeviceState(connDevice);
 
         const disconnectSub = manager.onDeviceDisconnected(targetDeviceId, () => {
@@ -130,32 +137,37 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
           if (hrTimeoutRef.current) {
             clearTimeout(hrTimeoutRef.current);
           }
-          addHR(0);
+          addHRRef.current(0);
         });
 
         subscriptions.current.push(disconnectSub);
 
-        // Registrasi Sensor/Characteristic Listener
+        // 3. HANYA SUBSCRIBE PADA CHARACTERISTIC HEART RATE (ATAU ABAIKAN NON-HR)
         const services = await connDevice.services();
         for (const service of services) {
           const characteristics = await connDevice.characteristicsForService(service.uuid);
           for (const characteristic of characteristics) {
-            if (characteristic.isNotifiable || characteristic.isIndicatable) {
-              const sub = connDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
-                if (error || !monitoredCharacteristic?.value) {
-                  addHR(0);
-                  return;
-                }
+            const isHrService = service.uuid.toLowerCase().includes(HEART_RATE_SERVICE_UUID);
+            const isHrChar = characteristic.uuid.toLowerCase().includes(HEART_RATE_CHARACTERISTIC_UUID);
 
-                const sensorValue = parseHeartRateValue(monitoredCharacteristic.value);
-                if (sensorValue !== null && sensorValue > 0) {
-                  addHR(sensorValue);
-                  resetHrTimeout();
-                } else {
-                  addHR(0);
-                }
-              });
-              subscriptions.current.push(sub);
+            // Filter hanya characteristic yang mendukung Notifiable / Indicatable
+            if (characteristic.isNotifiable || characteristic.isIndicatable) {
+              // Jika ini service/characteristic HR khusus atau fallback universal
+              if (isHrService || isHrChar || services.length === 1) {
+                const sub = connDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
+                  if (error || !monitoredCharacteristic?.value) {
+                    return; // ⚠️ JANGAN panggil addHR(0) di sini agar tidak spamming error
+                  }
+
+                  const sensorValue = parseHeartRateValue(monitoredCharacteristic.value);
+                  if (sensorValue !== null && sensorValue > 0) {
+                    addHRRef.current(sensorValue);
+                    resetHrTimeout();
+                  }
+                  // ⚠️ Hapus pemanggilan else { addHR(0) } dari characteristic non-HR!
+                });
+                subscriptions.current.push(sub);
+              }
             }
           }
         }
@@ -170,7 +182,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         throw error;
       }
     },
-    [addHR, manager, stopScan, resetHrTimeout],
+    [manager, stopScan, resetHrTimeout], // ⚠️ addHR SUDAH DIHAPUS DARI DEPENDENCY ARRAY
   );
 
   const disconnectDevice = async () => {
@@ -189,11 +201,10 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         console.error("Disconnect Error:", error);
       }
       setConnectedDeviceState(null);
-      addHR(0);
+      addHRRef.current(0);
     }
   };
 
-  // Transisi Foreground / Background AppState
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       const activeId = connectedDeviceIdRef.current;

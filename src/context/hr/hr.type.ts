@@ -4,10 +4,11 @@ export type HeartRateItem = {
 };
 
 export type AggregateItem = {
-  startTime: number;
-  endTime: number;
-  averageHR: number;
-  count: number;
+  value: number;
+  timestamp: number;
+  startTime?: number;
+  endTime?: number;
+  count?: number;
 };
 
 export type SimulateStatus = "NORMAL" | "TAKIKARDIA" | "BRADIKARDIA";
@@ -20,11 +21,19 @@ export type HeartIssueRecord = {
   recorded_at?: string;
 };
 
+export type ChartPoint = {
+  value: number;
+  label?: string;
+  timestamp?: number;
+};
+
 export type HRContextType = {
   currentHR: number;
   rawHR: number;
   simulateStatus: SimulateStatus;
   displayStatus: SimulateStatus | "-";
+  realtimeChartData: ChartPoint[];
+  aggregateChartData: ChartPoint[];
   setSimulateStatus: (status: SimulateStatus) => void;
   addHR: (value: number) => void;
   resetStorage: () => Promise<void>;
