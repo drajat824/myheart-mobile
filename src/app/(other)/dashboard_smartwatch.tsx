@@ -7,13 +7,11 @@ import { Button, Cards, Loading, Modal, RouterSub, WrapperMain } from "../../com
 
 export default function DashboardSmartwatch() {
   const { devices, isScanning, connectedDeviceId, startScan, stopScan, connectToDevice, disconnectDevice, isLoadingConnected } = useBle();
-
   const { openModal, closeModal } = useModal();
 
   const refreshAnimation = useRef(new Animated.Value(0)).current;
   const AnimatedMaterialIcon = Animated.createAnimatedComponent(MaterialDesignIcons);
 
-  // Animasi tombol Refresh/Scan
   useEffect(() => {
     if (!isScanning) {
       refreshAnimation.stopAnimation();
@@ -33,7 +31,6 @@ export default function DashboardSmartwatch() {
     return () => animation.stop();
   }, [isScanning, refreshAnimation]);
 
-  // Handle startScan dengan penanganan Error / Bluetooth Mati / Permission
   const handleStartScan = async () => {
     try {
       await startScan();
@@ -43,7 +40,6 @@ export default function DashboardSmartwatch() {
     }
   };
 
-  // Toggle Scanning manual
   const handleToggleScan = () => {
     if (isScanning) {
       stopScan();
@@ -52,7 +48,6 @@ export default function DashboardSmartwatch() {
     }
   };
 
-  // Handle Koneksi Perangkat
   const handleConnect = async (device: Device) => {
     try {
       await connectToDevice(device);
@@ -62,9 +57,8 @@ export default function DashboardSmartwatch() {
     }
   };
 
-  // CleanUp & Auto Scan saat halaman dibuka
   useEffect(() => {
-    if (connectedDeviceId == null) {
+    if (!connectedDeviceId) {
       handleStartScan();
     }
     return () => {
@@ -78,7 +72,7 @@ export default function DashboardSmartwatch() {
         <RouterSub title="SMARTWATCH" />
 
         <View className="flex-1 flex-col gap-3 mt-4">
-          <View className="flex flex-row justify-start">
+          <View className="flex flex-row justify-start items-center">
             <Pressable className="flex flex-row gap-2 items-center active:opacity-50" onPress={handleToggleScan}>
               <AnimatedMaterialIcon
                 name="refresh"
@@ -98,9 +92,8 @@ export default function DashboardSmartwatch() {
               <Text className="text-normal text-theme-blue font-semibold">SCAN</Text>
             </Pressable>
 
-            {/* Tombol Disconnect Muncul Jika Ada Device Konek */}
             {connectedDeviceId && (
-              <Pressable className="ml-4 flex justify-center active:opacity-50" onPress={disconnectDevice}>
+              <Pressable className="ml-6 flex justify-center active:opacity-50" onPress={disconnectDevice}>
                 <Text className="text-red-500 font-bold">DISCONNECT</Text>
               </Pressable>
             )}
@@ -108,15 +101,16 @@ export default function DashboardSmartwatch() {
 
           <View className="flex-col gap-4">
             {devices?.map((device) => {
-              const connectable = Boolean((device as any).isConnectable);
               const isConnected = connectedDeviceId === device.id;
+              const connectable = isConnected || Boolean((device as any).isConnectable ?? true);
+              const deviceDisplayName = device.name || device.localName || (isConnected ? "Smartwatch" : "Unknown Device");
 
               return (
                 <Cards key={device.id} pressable={connectable} color={isConnected ? "#017BFE80" : "#fff"} onPress={() => handleConnect(device)} className="flex flex-row justify-between items-center">
                   <View className="gap-2">
-                    <Text className="text-normal font-bold">{device.localName || "Unknown Device"}</Text>
+                    <Text className="text-normal font-bold">{deviceDisplayName}</Text>
                     <Text className="text-normal font-light">{device.id}</Text>
-                    <Text className="text-xs text-black">{connectable ? (isConnected ? "Connected" : "Connectable") : "Not connectable"}</Text>
+                    <Text className="text-xs text-black">{isConnected ? "Connected" : connectable ? "Connectable" : "Not connectable"}</Text>
                   </View>
                   <MaterialDesignIcons name={connectable ? "bluetooth-connect" : "bluetooth-off"} size={36} color={connectable ? "#017BFE" : "#9CA3AF"} />
                 </Cards>
@@ -126,10 +120,8 @@ export default function DashboardSmartwatch() {
         </View>
       </View>
 
-      {/* Loading Modal saat koneksi */}
       <Loading visible={isLoadingConnected} />
 
-      {/* Modal Warning Bluetooth / Permission */}
       <Modal id="bluetooth">
         <Cards className="mx-8">
           <View className="flex flex-col items-center gap-4 p-2">

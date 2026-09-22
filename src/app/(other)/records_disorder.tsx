@@ -1,7 +1,7 @@
-import { HeartIssueRecord } from "@/context/hr"; // Sesuaikan path
+import { HeartIssueRecord } from "@/context/hr";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
@@ -27,16 +27,64 @@ const formatDisplayDate = (dateKey: string): string => {
   if (!year || !month || !day) return dateKey;
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
-  return parsedDate.toLocaleDateString("id-ID", { day: "numeric", month: "long", year: "numeric" });
+
+  const formattedDate = parsedDate.toLocaleDateString("id-ID", {
+    day: "numeric",
+    month: "long",
+    year: "numeric",
+  });
+
+  const today = new Date();
+  const isToday = today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+
+  if (isToday) {
+    return `Hari ini, ${formattedDate}`;
+  }
+
+  return formattedDate;
+};
+
+const isDateToday = (dateKey: string): boolean => {
+  const [year, month, day] = dateKey.split("-");
+  if (!year || !month || !day) return false;
+
+  const today = new Date();
+  return today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+};
+
+// Helper untuk menyaring data cache berdasarkan parameter filter yang aktif
+const filterRecordsByParams = (records: HeartIssueRecord[], date: Date, range: { start: Date; end: Date } | null): HeartIssueRecord[] => {
+  if (!Array.isArray(records)) return [];
+
+  if (range) {
+    const startStr = formatDateToParam(range.start);
+    const endStr = formatDateToParam(range.end);
+    return records.filter((item) => {
+      const itemDate = parseToDate(item.recorded_at);
+      if (isNaN(itemDate.getTime())) return false;
+      const itemDateStr = formatDateToParam(itemDate);
+      return itemDateStr >= startStr && itemDateStr <= endStr;
+    });
+  } else {
+    const dateStr = formatDateToParam(date);
+    return records.filter((item) => {
+      const itemDate = parseToDate(item.recorded_at);
+      if (isNaN(itemDate.getTime())) return false;
+      return formatDateToParam(itemDate) === dateStr;
+    });
+  }
 };
 
 export default function RecordsDisorder() {
   const [groupedByDay, setGroupedByDay] = useState<Record<string, HeartIssueRecord[]>>({});
+
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
+
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
-  const groupData = (data: HeartIssueRecord[]) => {
+  const groupData = useCallback((data: HeartIssueRecord[]) => {
     if (!Array.isArray(data)) return {};
     return data.reduce(
       (result, item) => {
@@ -50,16 +98,21 @@ export default function RecordsDisorder() {
       },
       {} as Record<string, HeartIssueRecord[]>,
     );
-  };
+  }, []);
 
   const fetchRecords = useCallback(
-    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null }) => {
-      try {
-        setRefreshing(true);
-        let endpoint = "/hr-issues";
+    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null; isPullRefresh?: boolean }) => {
+      const rangeFilter = filterParams?.range !== undefined ? filterParams.range : selectedRange;
+      const dateFilter = filterParams?.date || selectedDate;
 
-        const rangeFilter = filterParams?.range !== undefined ? filterParams.range : selectedRange;
-        const dateFilter = filterParams?.date || selectedDate;
+      try {
+        if (filterParams?.isPullRefresh) {
+          setRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
+        let endpoint = "/hr-issues";
 
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);
@@ -72,53 +125,96 @@ export default function RecordsDisorder() {
 
         const data = await apiService.get<HeartIssueRecord[]>(endpoint);
         setGroupedByDay(groupData(data));
+
+        // Simpan data terbaru ke cache
         await AsyncStorage.setItem(CACHE_KEY_ISSUES, JSON.stringify(data));
       } catch (error) {
-        console.error("Gagal menarik riwayat gangguan:", error);
-        setGroupedByDay({});
+        console.error("Gagal menarik riwayat gangguan, mencoba memuat dari cache:", error);
+
+        // Fallback: Tampilkan data dari AsyncStorage jika server error/offline
+        try {
+          const cached = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
+          if (cached) {
+            const parsedCache: HeartIssueRecord[] = JSON.parse(cached);
+            const filteredCache = filterRecordsByParams(parsedCache, dateFilter, rangeFilter);
+            setGroupedByDay(groupData(filteredCache));
+          } else {
+            setGroupedByDay({});
+          }
+        } catch (e) {
+          console.error("Gagal membaca cache:", e);
+          setGroupedByDay({});
+        }
       } finally {
         setRefreshing(false);
+        setIsLoading(false);
       }
     },
-    [selectedDate, selectedRange],
+    [selectedDate, selectedRange, groupData],
   );
 
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-    setSelectedRange(null);
-    setGroupedByDay({});
-    fetchRecords({ date, range: null });
-  };
+  const handleDateChange = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+      setSelectedRange(null);
+      setGroupedByDay({});
+      fetchRecords({ date, range: null, isPullRefresh: false });
+    },
+    [fetchRecords],
+  );
 
-  const handleRangeChange = (startDate: Date, endDate: Date) => {
-    setSelectedRange({ start: startDate, end: endDate });
-    setGroupedByDay({});
-    fetchRecords({ range: { start: startDate, end: endDate } });
-  };
+  const handleRangeChange = useCallback(
+    (startDate: Date, endDate: Date) => {
+      const range = { start: startDate, end: endDate };
+      setSelectedRange(range);
+      setGroupedByDay({});
+      fetchRecords({ range, isPullRefresh: false });
+    },
+    [fetchRecords],
+  );
 
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchRecords();
-    setRefreshing(false);
+    await fetchRecords({ isPullRefresh: true });
   }, [fetchRecords]);
 
+  // Initial load saat komponen di-mount
   useEffect(() => {
-    const loadCacheAndFetch = async () => {
-      const cached = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
-      if (cached) {
+    InteractionManager.runAfterInteractions(() => {
+      const loadInitialData = async () => {
+        const today = new Date();
+        setSelectedDate(today);
+        setSelectedRange(null);
+        setIsLoading(true);
+
+        // Muat cache awal (difilter khusus tanggal hari ini agar tidak flicker jika cache berisi range sebelumnya)
         try {
-          setGroupedByDay(groupData(JSON.parse(cached)));
+          const cached = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
+          if (cached) {
+            const parsedCache: HeartIssueRecord[] = JSON.parse(cached);
+            const filteredCache = filterRecordsByParams(parsedCache, today, null);
+            setGroupedByDay(groupData(filteredCache));
+          }
         } catch (e) {
-          console.error("Gagal parse cache", e);
+          console.error("Gagal membaca cache awal:", e);
         }
-      }
-      const today = new Date();
-      setSelectedDate(today);
-      setSelectedRange(null);
-      await fetchRecords({ date: today, range: null });
-    };
-    loadCacheAndFetch();
+
+        // Ambil data terbaru dari server
+        await fetchRecords({ date: today, range: null, isPullRefresh: false });
+      };
+
+      loadInitialData();
+    });
   }, []);
+
+  // Optimasi Memoization untuk pengurutan tanggal & waktu kejadian
+  const sortedGroupedEntries = useMemo(() => {
+    return Object.entries(groupedByDay)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, data]) => {
+        const sortedData = [...data].sort((a, b) => parseToDate(a.recorded_at).getTime() - parseToDate(b.recorded_at).getTime());
+        return { date, data: sortedData };
+      });
+  }, [groupedByDay]);
 
   return (
     <WrapperMain>
@@ -127,23 +223,28 @@ export default function RecordsDisorder() {
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex flex-1">
-            <DatePicker initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+            <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
           </View>
 
-          <ScrollView className="flex-1 flex h-screen" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
-            {Object.keys(groupedByDay).length === 0 ? (
+          <ScrollView className="flex flex-1 flex-col gap-2 pb-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
+            {isLoading && sortedGroupedEntries.length === 0 ? (
+              <Cards className="py-10 items-center justify-center">
+                <ActivityIndicator size="large" color="#DB3546" />
+                <Text className="text-gray-500 font-medium mt-4">Memuat data riwayat gangguan...</Text>
+              </Cards>
+            ) : sortedGroupedEntries.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
                 <Text className="text-gray-500 font-medium">Tidak ada riwayat gangguan pada tanggal ini.</Text>
               </Cards>
             ) : (
-              Object.entries(groupedByDay).map(([date, data]) => (
-                <Cards key={date} className="flex flex-col gap-2 mb-3">
-                  <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>
+              sortedGroupedEntries.map(({ date, data }) => {
+                const isToday = isDateToday(date);
+                return (
+                  <Cards key={date} className="flex flex-col gap-2 mb-3">
+                    <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>
 
-                  <View className="flex-col gap-3 mt-2">
-                    {data
-                      .sort((a, b) => parseToDate(b.recorded_at).getTime() - parseToDate(a.recorded_at).getTime())
-                      .map((item, index) => {
+                    <View className="flex-col gap-3 mt-2">
+                      {data.map((item, index) => {
                         const itemDate = parseToDate(item.recorded_at);
                         const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) : "--:--";
 
@@ -151,16 +252,17 @@ export default function RecordsDisorder() {
                           <View key={`${item.recorded_at}-${index}`} className="flex-row items-start gap-4 justify-between">
                             <View className="w-2 h-2 rounded-full bg-black mt-2" />
                             <View className="flex flex-col gap-2 item-start self-start flex-1">
-                              <Text className="text-xl">{item.issue_type}:</Text>
+                              <Text className="text-xl capitalize">{item.issue_type}:</Text>
                               <Text className="text-lg font-light">{timeFormatted} WIB</Text>
                             </View>
                             <Text className="text-xl font-semibold">{item.bpm_recorded} BPM</Text>
                           </View>
                         );
                       })}
-                  </View>
-                </Cards>
-              ))
+                    </View>
+                  </Cards>
+                );
+              })
             )}
           </ScrollView>
         </View>

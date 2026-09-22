@@ -1,14 +1,14 @@
 {
   "expo": {
-    "name": "myheart-mobile",
-    "slug": "myheart-mobile",
+    "name": "Digital Health",
+    "slug": "Digital Health",
     "version": "1.0.0",
     "orientation": "portrait",
-    "scheme": "myheartmobile",
+    "scheme": "digitalhealth",
     "userInterfaceStyle": "automatic",
     "android": {
       "predictiveBackGestureEnabled": false,
-      "package": "com.darojat.myheartmobile",
+      "package": "com.darojat.digitalhealth",
       "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_CONNECTED_DEVICE", "WAKE_LOCK"]
     },
     "web": {
@@ -21,7 +21,7 @@
         {
           "isBackgroundEnabled": true,
           "modes": ["central"],
-          "bluetoothAlwaysPermission": "Allow MyHeartz to connect to bluetooth devices"
+          "bluetoothAlwaysPermission": "Allow Digital Health to connect to bluetooth devices"
         }
       ],
       [
@@ -51,7 +51,7 @@
       }
     },
     "ios": {
-      "bundleIdentifier": "com.darojat.myheartmobile"
+      "bundleIdentifier": "com.darojat.digitalhealth"
     }
   }
 }

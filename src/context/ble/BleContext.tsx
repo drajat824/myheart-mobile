@@ -1,4 +1,4 @@
-import { startBackgroundTask, stopBackgroundTask } from "@/utils/backgroundTask"; // Sesuaikan path jika berbeda
+import { startBackgroundTask, stopBackgroundTask } from "@/utils/backgroundTask";
 import { createContext, ReactNode, useCallback, useEffect, useRef, useState } from "react";
 import { AppState, AppStateStatus } from "react-native";
 import { BleManager, Device, State, Subscription } from "react-native-ble-plx";
@@ -15,21 +15,21 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
 
   const subscriptions = useRef<Subscription[]>([]);
   const isIntentionalDisconnect = useRef(false);
-  const connectedDeviceIdRef = useRef<string | null>(null);
 
-  // Referensi untuk timer timeout HR
+  // Single Reference & State untuk Perangkat Terhubung
+  const connectedDeviceIdRef = useRef<string | null>(null);
+  const [connectedDevice, setConnectedDevice] = useState<Device | null>(null);
+
   const hrTimeoutRef = useRef<ReturnType<typeof setTimeout> | null>(null);
 
   const [devices, setDevices] = useState<Device[]>([]);
   const [isScanning, setIsScanning] = useState(false);
   const [isLoadingConnected, setIsLoadingConnected] = useState(false);
-  const [connectedDeviceId, setConnectedDeviceId] = useState<string | null>(null);
-  const [connectedDeviceName, setConnectedDeviceName] = useState<string | null>(null);
 
-  // Sync state ke ref untuk mencegah stale closures
-  const updateConnectedDeviceId = (id: string | null) => {
-    connectedDeviceIdRef.current = id;
-    setConnectedDeviceId(id);
+  // Helper terpusat untuk memperbarui status koneksi
+  const setConnectedDeviceState = (device: Device | null) => {
+    setConnectedDevice(device);
+    connectedDeviceIdRef.current = device ? device.id : null;
   };
 
   const clearSubscriptions = () => {
@@ -46,33 +46,30 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     return await requestBlePermissions();
   };
 
-  // Fungsi untuk mereset timer setiap kali data masuk
   const resetHrTimeout = useCallback(() => {
     if (hrTimeoutRef.current) {
       clearTimeout(hrTimeoutRef.current);
     }
-    // Jika selama 5 detik tidak ada paket BLE baru, paksa HR jadi 0
     hrTimeoutRef.current = setTimeout(() => {
-      console.log("[BLE] Tidak ada data HR masuk selama 5 detik. Jam dilepas?");
+      console.log("[BLE] Tidak ada data HR masuk selama 2.5 detik.");
       addHR(0);
     }, 2500);
   }, [addHR]);
 
   const startScan = async () => {
-    // 1. Cek Izin Bluetooth & Lokasi
     const hasPermission = await requestPermissions();
     if (!hasPermission) {
       throw new Error("Izin Bluetooth/Lokasi tidak diberikan");
     }
 
-    // 2. Cek apakah Hardware Bluetooth Aktif
     const bleState = await manager.state();
     if (bleState !== State.PoweredOn) {
       setDevices([]);
       throw new Error("Bluetooth tidak aktif");
     }
 
-    setDevices([]);
+    // Jaga agar device yang sedang terhubung TIDAK terhapus dari daftar UI saat rescan
+    setDevices(connectedDevice ? [connectedDevice] : []);
     setIsScanning(true);
 
     manager.startDeviceScan(null, null, (error, device) => {
@@ -82,7 +79,7 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         return;
       }
 
-      if (device && device.name) {
+      if (device && (device.name || device.localName)) {
         setDevices((prevDevices) => {
           if (!prevDevices.some((d) => d.id === device.id)) {
             return [...prevDevices, device];
@@ -101,7 +98,6 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     async (device: Device | string | null, isReconnect = false) => {
       if (!device) return;
 
-      // Cek apakah Bluetooth Aktif sebelum konek
       const bleState = await manager.state();
       if (bleState !== State.PoweredOn) {
         throw new Error("Bluetooth tidak aktif");
@@ -112,27 +108,24 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
       const targetDeviceId = typeof device === "string" ? device : device.id;
       if (connectedDeviceIdRef.current === targetDeviceId && !isReconnect) return;
 
-      if (!isLoadingConnected) setIsLoadingConnected(true);
-
       try {
         clearSubscriptions();
         setIsLoadingConnected(true);
 
-        // 1. Proses Koneksi
-        const connectedDevice = await manager.connectToDevice(targetDeviceId);
-        await connectedDevice.discoverAllServicesAndCharacteristics();
-        setConnectedDeviceName(connectedDevice.name);
-        updateConnectedDeviceId(connectedDevice.id);
+        const connDevice = await manager.connectToDevice(targetDeviceId);
+        await connDevice.discoverAllServicesAndCharacteristics();
+
+        // Simpan seluruh objek device terhubung
+        setConnectedDeviceState(connDevice);
 
         const disconnectSub = manager.onDeviceDisconnected(targetDeviceId, () => {
           if (isIntentionalDisconnect.current) {
             console.log("[BLE] Intentional disconnect untuk background operation.");
             return;
           }
-          console.log("[BLE] Terputus secara tak terduga. Resetting connection state.");
-          updateConnectedDeviceId(null);
-          setConnectedDeviceName(null);
-          setIsLoadingConnected(false); // Pastikan mati saat terputus
+          console.log("[BLE] Terputus secara tak terduga.");
+          setConnectedDeviceState(null);
+          setIsLoadingConnected(false);
 
           if (hrTimeoutRef.current) {
             clearTimeout(hrTimeoutRef.current);
@@ -142,58 +135,42 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
 
         subscriptions.current.push(disconnectSub);
 
-        // 2. Registrasi Sensor (Subscribing)
-        const services = await connectedDevice.services();
-
+        // Registrasi Sensor/Characteristic Listener
+        const services = await connDevice.services();
         for (const service of services) {
-          const characteristics = await connectedDevice.characteristicsForService(service.uuid);
-
+          const characteristics = await connDevice.characteristicsForService(service.uuid);
           for (const characteristic of characteristics) {
             if (characteristic.isNotifiable || characteristic.isIndicatable) {
-              const sub = connectedDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
-                if (error) {
-                  console.log("[BLE] Sensor error/tidak dapat membaca data:", error.message);
+              const sub = connDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
+                if (error || !monitoredCharacteristic?.value) {
                   addHR(0);
                   return;
                 }
 
-                const value = monitoredCharacteristic?.value;
-
-                if (!value) {
-                  addHR(0);
-                  return;
-                }
-
-                const sensorValue = parseHeartRateValue(value);
-
+                const sensorValue = parseHeartRateValue(monitoredCharacteristic.value);
                 if (sensorValue !== null && sensorValue > 0) {
                   addHR(sensorValue);
-                  resetHrTimeout(); // Reset timer karena data berhasil masuk
+                  resetHrTimeout();
                 } else {
                   addHR(0);
                 }
               });
-
               subscriptions.current.push(sub);
             }
           }
         }
 
-        // 3. MATIKAN LOADING DI SINI
-        // Koneksi BLE dan setup listener sudah selesai sepenuhnya
         setIsLoadingConnected(false);
       } catch (error) {
         console.error("Gagal terhubung ke device:", error);
-        setDevices([]);
         setIsLoadingConnected(false);
         if (!isReconnect) {
-          updateConnectedDeviceId(null);
-          setConnectedDeviceName(null);
+          setConnectedDeviceState(null);
         }
         throw error;
       }
     },
-    [addHR, manager, stopScan, isLoadingConnected, resetHrTimeout],
+    [addHR, manager, stopScan, resetHrTimeout],
   );
 
   const disconnectDevice = async () => {
@@ -211,19 +188,17 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
       } catch (error) {
         console.error("Disconnect Error:", error);
       }
-      updateConnectedDeviceId(null);
-      setConnectedDeviceName(null);
-      addHR(0); // Paksa 0 saat disconnect manual
+      setConnectedDeviceState(null);
+      addHR(0);
     }
   };
 
-  // Manajemen AppState untuk transisi UI <-> Background Service
+  // Transisi Foreground / Background AppState
   useEffect(() => {
     const handleAppStateChange = async (nextAppState: AppStateStatus) => {
       const activeId = connectedDeviceIdRef.current;
 
       if (nextAppState.match(/inactive|background/) && activeId) {
-        console.log("[AppState] Masuk background: Menghentikan koneksi UI & menjalankan service");
         isIntentionalDisconnect.current = true;
         clearSubscriptions();
 
@@ -239,29 +214,23 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
 
         await startBackgroundTask(activeId);
       } else if (nextAppState === "active" && activeId) {
-        console.log("[AppState] Masuk foreground: Memeriksa status BLE...");
-
         try {
           await stopBackgroundTask();
           const isConnected = await manager.isDeviceConnected(activeId);
 
           if (isConnected) {
-            console.log("[AppState] Device masih aktif, mereconnect UI...");
             isIntentionalDisconnect.current = false;
             await new Promise((resolve) => setTimeout(resolve, 1500));
             await connectToDevice(activeId, true);
           } else {
-            console.log("[AppState] Device terputus. Resetting state UI.");
             isIntentionalDisconnect.current = false;
             clearSubscriptions();
-            updateConnectedDeviceId(null);
-            setConnectedDeviceName(null);
+            setConnectedDeviceState(null);
             setIsLoadingConnected(false);
           }
         } catch (error) {
-          console.error("Gagal mengecek status/reconnect saat foreground:", error);
-          updateConnectedDeviceId(null);
-          setConnectedDeviceName(null);
+          console.error("Gagal reconnect saat foreground:", error);
+          setConnectedDeviceState(null);
           setIsLoadingConnected(false);
           setDevices([]);
         }
@@ -269,13 +238,9 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     };
 
     const subscription = AppState.addEventListener("change", handleAppStateChange);
-
-    return () => {
-      subscription.remove();
-    };
+    return () => subscription.remove();
   }, [connectToDevice, manager]);
 
-  // Clean up BleManager saat unmount
   useEffect(() => {
     return () => {
       if (hrTimeoutRef.current) {
@@ -292,9 +257,9 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
       value={{
         devices,
         isScanning,
-        connectedDeviceId,
+        connectedDeviceId: connectedDevice?.id ?? null,
+        connectedDeviceName: connectedDevice?.name || connectedDevice?.localName || null,
         isLoadingConnected,
-        connectedDeviceName,
         requestPermissions,
         startScan,
         stopScan,

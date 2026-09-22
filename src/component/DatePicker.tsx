@@ -12,31 +12,46 @@ type DatePickerProps = {
   initialRangePicker?: boolean;
   onDateChange?: (date: Date) => void;
   onRangeChange?: (startDate: Date, endDate: Date) => void;
+  disable?: boolean;
 };
 
-export default function DatePicker({ initialDate, initialRangeEndDate, initialRangePicker = false, onDateChange, onRangeChange }: DatePickerProps) {
+// Helper untuk menghitung 7 hari ke belakang
+const getSevenDaysAgo = (baseDate: Date = new Date()): Date => {
+  const d = new Date(baseDate);
+  d.setDate(d.getDate() - 7);
+  return d;
+};
+
+export default function DatePicker({ initialDate, initialRangeEndDate, initialRangePicker = false, onDateChange, onRangeChange, disable = false }: DatePickerProps) {
   const { openModal, closeModal } = useModal();
 
   const [isRangePicker, setIsRangePicker] = useState(initialRangePicker);
 
-  // 1. Lazy Initialization: Hanya buat objek Date baru 1x saat komponen dipasang
+  // Default Single Date = Hari ini
+  // Default Range Picker = Seminggu ke belakang s/d Hari ini
   const [date, setDate] = useState(() => initialDate || new Date());
-  const [rangeStartDate, setRangeStartDate] = useState(() => initialDate || new Date());
-  const [rangeEndDate, setRangeEndDate] = useState(() => initialRangeEndDate || new Date((initialDate || new Date()).getTime() + 7 * 24 * 60 * 60 * 1000));
+  const [rangeStartDate, setRangeStartDate] = useState(() => {
+    if (initialDate && initialRangeEndDate) return initialDate;
+    return getSevenDaysAgo(initialRangeEndDate || initialDate || new Date());
+  });
+  const [rangeEndDate, setRangeEndDate] = useState(() => initialRangeEndDate || initialDate || new Date());
 
-  // 2. Ref untuk mencatat timestamp prop sebelumnya
   const prevInitialTimeRef = useRef<number | undefined>(initialDate?.getTime());
   const prevInitialEndTimeRef = useRef<number | undefined>(initialRangeEndDate?.getTime());
 
-  // 3. Sync HANYA JIKA prop initialDate dari Parent BENAR-BENAR BERUBAH secara eksternal
   useEffect(() => {
     const currentInitialTime = initialDate?.getTime();
     if (currentInitialTime && currentInitialTime !== prevInitialTimeRef.current) {
       prevInitialTimeRef.current = currentInitialTime;
       setDate(initialDate!);
-      setRangeStartDate(initialDate!);
+      if (!initialRangeEndDate) {
+        setRangeStartDate(getSevenDaysAgo(initialDate!));
+        setRangeEndDate(initialDate!);
+      } else {
+        setRangeStartDate(initialDate!);
+      }
     }
-  }, [initialDate]);
+  }, [initialDate, initialRangeEndDate]);
 
   useEffect(() => {
     const currentEndTime = initialRangeEndDate?.getTime();
@@ -69,9 +84,10 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
     if (event.type === "set" && selectedDate) {
       setDate(selectedDate);
 
-      const defaultEndDate = new Date(selectedDate.getTime() + 7 * 24 * 60 * 60 * 1000);
-      setRangeStartDate(selectedDate);
-      setRangeEndDate(defaultEndDate);
+      // Jika berpindah ke range, default range end = tanggal terpilih, start = seminggu sebelumnya
+      const defaultStartDate = getSevenDaysAgo(selectedDate);
+      setRangeStartDate(defaultStartDate);
+      setRangeEndDate(selectedDate);
 
       onDateChange?.(selectedDate);
     }
@@ -118,21 +134,21 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
     <View className="flex flex-col gap-2">
       <View className="-mb-4 flex-1 flex flex-row items-center justify-end gap-2">
         <Text className="text-label">Range Picker</Text>
-        <Switch value={isRangePicker} onValueChange={onToggleSwitch} trackColor={{ true: "#017BFE", false: "#767577" }} thumbColor={isRangePicker ? "#ffffff" : "#f4f3f4"} />
+        <Switch disabled={disable} className={`active:opacity-50 ${disable ? "opacity-50" : ""}`} value={isRangePicker} onValueChange={onToggleSwitch} trackColor={{ true: "#017BFE", false: "#767577" }} thumbColor={isRangePicker ? "#ffffff" : "#f4f3f4"} />
       </View>
 
       {!isRangePicker && (
-        <Pressable className="active:opacity-50" onPress={() => openModal("single-date-picker")}>
+        <Pressable disabled={disable} className={`active:opacity-50 ${disable ? "opacity-50" : ""}`} onPress={() => openModal("single-date-picker")}>
           <Cards className="mt-4 flex flex-row items-center py-[15] gap-4">
-            <MaterialDesignIcons className="ml-[-2]" name="calendar-range" size={30} color="#DB3546" />
-            <Text className="text-normal">{formattedDate}</Text>
+            <MaterialDesignIcons className="ml-[-2]" name="calendar-range" size={30} color={disable ? "#999999" : "#DB3546"} />
+            <Text className={`text-normal ${disable ? "text-gray-400" : ""}`}>{formattedDate}</Text>
           </Cards>
         </Pressable>
       )}
 
       {!!isRangePicker && (
         <View className="mt-6 flex flex-row items-center justify-between gap-2">
-          <Pressable className="flex-1 active:opacity-50" onPress={() => openModal("range-start-picker")}>
+          <Pressable className={`active:opacity-50 ${disable ? "opacity-50" : ""} flex-1 active:opacity-50`} disabled={disable} onPress={() => openModal("range-start-picker")}>
             <Cards className="flex flex-row items-center justify-center py-[15] gap-2">
               <MaterialDesignIcons name="calendar-import" size={24} color="#DB3546" />
               <Text className="text-normal">{formattedRangeStartDate}</Text>
@@ -141,7 +157,7 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
 
           <Text className="text-4xl font-bold text-gray-400">-</Text>
 
-          <Pressable className="flex-1 active:opacity-50" onPress={() => openModal("range-end-picker")}>
+          <Pressable className={`active:opacity-50 ${disable ? "opacity-50" : ""} flex-1 active:opacity-50`} disabled={disable} onPress={() => openModal("range-end-picker")}>
             <Cards className="flex flex-row items-center justify-center py-[15] gap-2">
               <MaterialDesignIcons name="calendar-export" size={24} color="#DB3546" />
               <Text className="text-normal">{formattedRangeEndDate}</Text>

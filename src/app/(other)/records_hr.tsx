@@ -1,6 +1,6 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useState } from "react";
-import { RefreshControl, ScrollView, Text, View } from "react-native";
+import { useCallback, useEffect, useMemo, useState } from "react";
+import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text, View } from "react-native";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
@@ -16,7 +16,6 @@ export type AggregateRecord = {
   end_time?: string | number;
 };
 
-// Helper untuk format objek Date ke string YYYY-MM-DD berdasarkan waktu lokal
 const formatDateToParam = (date: Date): string => {
   const year = date.getFullYear();
   const month = String(date.getMonth() + 1).padStart(2, "0");
@@ -24,7 +23,6 @@ const formatDateToParam = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
-// Helper aman mengonversi tanggal/timestamp ke Date objek
 const parseToDate = (dateVal: string | number | undefined): Date => {
   if (!dateVal) return new Date(NaN);
   if (typeof dateVal === "number") return new Date(dateVal);
@@ -39,23 +37,62 @@ const formatDisplayDate = (dateKey: string): string => {
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
 
-  return parsedDate.toLocaleDateString("id-ID", {
+  const formattedDate = parsedDate.toLocaleDateString("id-ID", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
+
+  const today = new Date();
+  const isToday = today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+
+  if (isToday) {
+    return `Hari ini, ${formattedDate}`;
+  }
+
+  return formattedDate;
+};
+
+const isDateToday = (dateKey: string): boolean => {
+  const [year, month, day] = dateKey.split("-");
+  if (!year || !month || !day) return false;
+
+  const today = new Date();
+  return today.getFullYear() === Number(year) && today.getMonth() === Number(month) - 1 && today.getDate() === Number(day);
+};
+
+// Helper untuk menyaring data cache berdasarkan parameter filter yang aktif
+const filterRecordsByParams = (records: AggregateRecord[], date: Date, range: { start: Date; end: Date } | null): AggregateRecord[] => {
+  if (!Array.isArray(records)) return [];
+
+  if (range) {
+    const startStr = formatDateToParam(range.start);
+    const endStr = formatDateToParam(range.end);
+    return records.filter((item) => {
+      const itemDate = parseToDate(item.start_time || item.startTime);
+      if (isNaN(itemDate.getTime())) return false;
+      const itemDateStr = formatDateToParam(itemDate);
+      return itemDateStr >= startStr && itemDateStr <= endStr;
+    });
+  } else {
+    const dateStr = formatDateToParam(date);
+    return records.filter((item) => {
+      const itemDate = parseToDate(item.start_time || item.startTime);
+      if (isNaN(itemDate.getTime())) return false;
+      return formatDateToParam(itemDate) === dateStr;
+    });
+  }
 };
 
 export default function RecordsHR() {
   const [groupedByDay, setGroupedByDay] = useState<Record<string, AggregateRecord[]>>({});
   const [refreshing, setRefreshing] = useState(false);
+  const [isLoading, setIsLoading] = useState(true);
 
-  // State penyimpan filter tanggal yang sedang aktif
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
-  // Grouping data berdasarkan tanggal
-  const groupData = (data: AggregateRecord[]) => {
+  const groupData = useCallback((data: AggregateRecord[]) => {
     if (!Array.isArray(data)) return {};
 
     return data.reduce(
@@ -76,25 +113,26 @@ export default function RecordsHR() {
       },
       {} as Record<string, AggregateRecord[]>,
     );
-  };
+  }, []);
 
-  // Fungsi Fetch Data berdasarkan parameter single date atau range
   const fetchRecords = useCallback(
-    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null }) => {
+    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null; isPullRefresh?: boolean }) => {
+      const rangeFilter = filterParams?.range !== undefined ? filterParams.range : selectedRange;
+      const dateFilter = filterParams?.date || selectedDate;
+
       try {
-        setRefreshing(true);
+        if (filterParams?.isPullRefresh) {
+          setRefreshing(true);
+        } else {
+          setIsLoading(true);
+        }
+
         let endpoint = "/hr";
-
-        const rangeFilter = filterParams?.range !== undefined ? filterParams.range : selectedRange;
-        const dateFilter = filterParams?.date || selectedDate;
-
         if (rangeFilter) {
-          // Mode Range: /hr?start_time=YYYY-MM-DD&end_time=YYYY-MM-DD
           const startStr = formatDateToParam(rangeFilter.start);
           const endStr = formatDateToParam(rangeFilter.end);
           endpoint = `/hr?start_time=${startStr}&end_time=${endStr}`;
         } else {
-          // Mode Single Date (Default Hari ini): /hr?date=YYYY-MM-DD
           const dateStr = formatDateToParam(dateFilter);
           endpoint = `/hr?date=${dateStr}`;
         }
@@ -102,64 +140,99 @@ export default function RecordsHR() {
         const data = await apiService.get<AggregateRecord[]>(endpoint);
         setGroupedByDay(groupData(data));
 
-        // Cache hasil
+        // Simpan data terbaru ke cache
         await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
       } catch (error) {
-        console.error("Gagal menarik riwayat HR:", error);
-        // Jika gagal API, pastikan data dikosongkan agar konsisten dengan pesan UI
-        setGroupedByDay({});
+        console.error("Gagal menarik riwayat HR, mencoba memuat dari cache:", error);
+
+        // Fallback: Tampilkan data dari AsyncStorage jika server error/offline
+        try {
+          const cached = await AsyncStorage.getItem(CACHE_KEY);
+          if (cached) {
+            const parsedCache: AggregateRecord[] = JSON.parse(cached);
+            const filteredCache = filterRecordsByParams(parsedCache, dateFilter, rangeFilter);
+            setGroupedByDay(groupData(filteredCache));
+          } else {
+            setGroupedByDay({});
+          }
+        } catch (e) {
+          console.error("Gagal membaca cache:", e);
+          setGroupedByDay({});
+        }
       } finally {
         setRefreshing(false);
+        setIsLoading(false);
       }
     },
-    [selectedDate, selectedRange],
+    [selectedDate, selectedRange, groupData],
   );
 
-  // Trigger Handler untuk Single Date Picker
-  const handleDateChange = (date: Date) => {
-    setSelectedDate(date);
-    setSelectedRange(null); // Reset mode range
-    setGroupedByDay({}); // <--- REVISI: Kosongkan data langsung agar UI instan merespons
-    fetchRecords({ date, range: null });
-  };
+  const handleDateChange = useCallback(
+    (date: Date) => {
+      setSelectedDate(date);
+      setSelectedRange(null);
+      setGroupedByDay({});
+      fetchRecords({ date, range: null, isPullRefresh: false });
+    },
+    [fetchRecords],
+  );
 
-  // Trigger Handler untuk Range Date Picker
-  const handleRangeChange = (startDate: Date, endDate: Date) => {
-    const range = { start: startDate, end: endDate };
-    setSelectedRange(range);
-    setGroupedByDay({}); // <--- REVISI: Kosongkan data langsung agar UI instan merespons
-    fetchRecords({ range });
-  };
+  const handleRangeChange = useCallback(
+    (startDate: Date, endDate: Date) => {
+      const range = { start: startDate, end: endDate };
+      setSelectedRange(range);
+      setGroupedByDay({});
+      fetchRecords({ range, isPullRefresh: false });
+    },
+    [fetchRecords],
+  );
 
-  // Pull to refresh
   const onRefresh = useCallback(async () => {
-    setRefreshing(true);
-    await fetchRecords();
-    setRefreshing(false);
+    await fetchRecords({ isPullRefresh: true });
   }, [fetchRecords]);
 
-  // Initial Load (Default Load Data Hari Ini)
+  // Initial load saat komponen di-mount
   useEffect(() => {
-    const loadCacheAndFetch = async () => {
-      // 1. Tampilkan cache jika ada
-      const cached = await AsyncStorage.getItem(CACHE_KEY);
-      if (cached) {
+    InteractionManager.runAfterInteractions(() => {
+      const loadInitialData = async () => {
+        const today = new Date();
+        setSelectedDate(today);
+        setSelectedRange(null);
+        setIsLoading(true);
+
+        // Muat cache awal (difilter khusus tanggal hari ini agar tidak flicker jika cache sebelumnya berisi range)
         try {
-          setGroupedByDay(groupData(JSON.parse(cached)));
+          const cached = await AsyncStorage.getItem(CACHE_KEY);
+          if (cached) {
+            const parsedCache: AggregateRecord[] = JSON.parse(cached);
+            const filteredCache = filterRecordsByParams(parsedCache, today, null);
+            setGroupedByDay(groupData(filteredCache));
+          }
         } catch (e) {
-          console.error("Gagal parse cache", e);
+          console.error("Gagal membaca cache awal:", e);
         }
-      }
 
-      // 2. Fetch data terbaru untuk HARI INI
-      const today = new Date();
-      setSelectedDate(today);
-      setSelectedRange(null);
-      await fetchRecords({ date: today, range: null });
-    };
+        // Ambil data terbaru dari server
+        await fetchRecords({ date: today, range: null, isPullRefresh: false });
+      };
 
-    loadCacheAndFetch();
+      loadInitialData();
+    });
   }, []);
+
+  // Optimasi Memoization untuk sorting data per hari dan urutan jam
+  const sortedGroupedEntries = useMemo(() => {
+    return Object.entries(groupedByDay)
+      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .map(([date, data]) => {
+        const sortedData = [...data].sort((a, b) => {
+          const timeA = parseToDate(a.start_time || a.startTime).getTime();
+          const timeB = parseToDate(b.start_time || b.startTime).getTime();
+          return timeA - timeB;
+        });
+        return { date, data: sortedData };
+      });
+  }, [groupedByDay]);
 
   return (
     <WrapperMain>
@@ -168,27 +241,28 @@ export default function RecordsHR() {
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex flex-1">
-            <DatePicker initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+            <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
           </View>
 
-          <ScrollView className="flex-1 flex h-screen" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
-            {Object.keys(groupedByDay).length === 0 ? (
+          <ScrollView className="flex flex-1 flex-col gap-2 pb-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
+            {isLoading && sortedGroupedEntries.length === 0 ? (
+              <Cards className="py-10 items-center justify-center">
+                <ActivityIndicator size="large" color="#DB3546" />
+                <Text className="text-gray-500 font-medium mt-4">Memuat data...</Text>
+              </Cards>
+            ) : sortedGroupedEntries.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada data rekam medis pada tanggal ini.</Text>
+                <Text className="text-gray-500 font-medium">Tidak ada data riwayat heart rate pada tanggal ini.</Text>
               </Cards>
             ) : (
-              Object.entries(groupedByDay).map(([date, data]) => (
-                <Cards key={date} className="flex flex-col gap-2 mb-3">
-                  <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>
+              sortedGroupedEntries.map(({ date, data }) => {
+                const isToday = isDateToday(date);
+                return (
+                  <Cards color={isToday ? "#FFFFFF" : "#FFDD78"} key={date} className="flex flex-col gap-2 mb-3">
+                    <Text className="text-normal font-bold">{formatDisplayDate(date)}.</Text>
 
-                  <View className="flex-col gap-3 mt-2">
-                    {data
-                      .sort((a, b) => {
-                        const timeA = parseToDate(a.start_time || a.startTime).getTime();
-                        const timeB = parseToDate(b.start_time || b.startTime).getTime();
-                        return timeB - timeA; // Urutkan terbaru di atas
-                      })
-                      .map((item, index) => {
+                    <View className="flex-col gap-3 mt-2">
+                      {data.map((item, index) => {
                         const rawStartTime = item.start_time || item.startTime;
                         const itemDate = parseToDate(rawStartTime);
                         const bpmValue = item.bpm ?? item.averageHR ?? 0;
@@ -201,16 +275,19 @@ export default function RecordsHR() {
                           : "--:--";
 
                         return (
-                          <View key={`${rawStartTime}-${index}`} className="flex-row items-center gap-4">
-                            <View className="w-2 h-2 rounded-full bg-black" />
-                            <Text className="text-xl">{timeFormatted} WIB:</Text>
+                          <View key={`${rawStartTime}-${index}`} className="flex-row items-center gap-4 justify-between">
+                            <View className="flex flex-row gap-3 items-center">
+                              <View className="w-2 h-2 rounded-full bg-black" />
+                              <Text className="text-xl">{timeFormatted} WIB:</Text>
+                            </View>
                             <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
                           </View>
                         );
                       })}
-                  </View>
-                </Cards>
-              ))
+                    </View>
+                  </Cards>
+                );
+              })
             )}
           </ScrollView>
         </View>
