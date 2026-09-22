@@ -6,7 +6,7 @@ import { useCallback, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Cards, Header, WrapperMain } from "../../component";
 
-const CACHE_KEY = "@myheartz_records_cache";
+const CACHE_KEY = "@myheartz_aggregation_cache";
 const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
 
 type AggregateRecord = {
@@ -201,7 +201,7 @@ export default function Records() {
 
               {/* CARDS RIWAYAT HR (DENGAN CUPLIKAN CACHE) */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">RIWAYAT HEART-RATE</Text>
+                <Text className="text-normal font-bold">RIWAYAT AGREGASI HR</Text>
                 <Text className="text-normal text-gray-500">{latestDateText || "Belum ada riwayat"}</Text>
 
                 <View className="flex-col gap-3 mt-2">
@@ -231,7 +231,7 @@ export default function Records() {
                   )}
                 </View>
 
-                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr")}>
+                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>

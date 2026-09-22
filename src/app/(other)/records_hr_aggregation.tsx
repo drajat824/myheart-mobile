@@ -4,7 +4,7 @@ import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
-const CACHE_KEY = "@myheartz_records_cache";
+const CACHE_KEY = "@myheartz_aggregation_cache";
 
 export type AggregateRecord = {
   id?: number;
@@ -96,7 +96,7 @@ const filterRecordsByParams = (records: AggregateRecord[], date: Date, range: { 
   }
 };
 
-export default function RecordsHR() {
+export default function RecordsHRAggregation() {
   const [groupedByDay, setGroupedByDay] = useState<Record<string, AggregateRecord[]>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -244,7 +244,7 @@ export default function RecordsHR() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT HEART RATE" />
+        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT AGREGASI HR" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex flex-1">
