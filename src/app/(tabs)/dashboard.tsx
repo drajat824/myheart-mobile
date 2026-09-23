@@ -227,10 +227,39 @@ export default function Dashboard() {
           </Cards>
 
           {/* 1. LIVE CHART HR REALTIME (DILENGKAPI CACHING 24 JAM) */}
-          <HRRealtimeChartCard data={realtimeChartData} />
+          {/* <Cards className="flex flex-col gap-3"> */}
+          {/* <View className="flex-row items-center justify-between">
+              <View className="flex-row items-center gap-2">
+                <View className="w-3 h-3 rounded-full bg-theme-red" />
+                <Text className="text-label text-theme-red font-bold">LIVE HR REALTIME (PER DATA)</Text>
+              </View>
+            </View> */}
+
+          <View className="bg-white rounded-xl py-4 px-2 shadow-lg">
+            <View className="flex-row items-center gap-2 pl-2 pb-4">
+              <View className="w-3 h-3 rounded-full bg-theme-green" />
+              <Text className="text-label text-theme-red font-bold">LIVE HR REALTIME</Text>
+            </View>
+            <HRRealtimeChartCard data={realtimeChartData} />
+            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4 pr-4" onPress={() => router.push("/records_hr_realtime")}>
+              <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+              <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
+            </Pressable>
+          </View>
+          {/* </Cards> */}
 
           {/* 2. CHART AGREGASI HR (PER 10 MENIT) */}
-          <HRAggregateChartCard data={aggregateChartData} />
+          <View className="bg-white rounded-xl py-4 px-2 shadow-lg">
+            <View className="flex-row items-center gap-2 pl-2 pb-4">
+              <View className="w-3 h-3 rounded-full bg-theme-green" />
+              <Text className="text-label text-theme-red font-bold">HR AGREGASI</Text>
+            </View>
+            <HRAggregateChartCard data={aggregateChartData} />
+            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4 pr-4" onPress={() => router.push("/records_hr_aggregation")}>
+              <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+              <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
+            </Pressable>
+          </View>
 
           {/* 4. MODEL 3D HEART VIA WEBVIEW */}
           <View className="flex flex-col gap-4 mt-2 mb-10">

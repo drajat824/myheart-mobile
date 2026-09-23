@@ -7,6 +7,7 @@ import { Pressable, Text, View } from "react-native";
 import { Cards, Header, WrapperMain } from "../../component";
 
 const CACHE_KEY = "@myheartz_aggregation_cache";
+const CACHE_KEY_REALTIME = "@myheartz_realtime_cache";
 const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
 
 type AggregateRecord = {
@@ -45,7 +46,11 @@ export default function Records() {
   const [isDevice, setDevice] = useState(true);
 
   const [latestHRRecords, setLatestHRRecords] = useState<AggregateRecord[]>([]);
-  const [latestDateText, setLatestDateText] = useState<string>("");
+  const [latesetHRDateText, setLatesetHRDateText] = useState<string>("");
+
+  const [latestHRAggregation, setLatestHRAggregation] = useState<AggregateRecord[]>([]);
+  const [latestHRAggregationDateText, setLatestHRAggregationDateText] = useState<string>("");
+
   const [latestIssueRecords, setLatestIssueRecords] = useState<HeartIssueRecord[]>([]);
   const [latestIssueDateText, setLatestIssueDateText] = useState<string>("");
 
@@ -53,9 +58,32 @@ export default function Records() {
   const loadCachedHR = useCallback(async () => {
     try {
       // 1. Load HR Cache
-      const cached = await AsyncStorage.getItem(CACHE_KEY);
-      if (cached) {
-        const parsedData: AggregateRecord[] = JSON.parse(cached);
+      const cachedAggregation = await AsyncStorage.getItem(CACHE_KEY);
+      const cachedRealtime = await AsyncStorage.getItem(CACHE_KEY_REALTIME);
+
+      if (cachedAggregation) {
+        const parsedData: AggregateRecord[] = JSON.parse(cachedAggregation);
+        if (Array.isArray(parsedData) && parsedData.length > 0) {
+          const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
+          const preview = sorted.slice(0, 3);
+          setLatestHRAggregation(preview);
+
+          const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
+          if (!isNaN(topDate.getTime())) {
+            setLatestHRAggregationDateText(
+              topDate.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+            );
+          }
+        }
+      }
+
+      if (cachedRealtime) {
+        const parsedData: AggregateRecord[] = JSON.parse(cachedRealtime);
         if (Array.isArray(parsedData) && parsedData.length > 0) {
           const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
@@ -63,7 +91,7 @@ export default function Records() {
 
           const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
           if (!isNaN(topDate.getTime())) {
-            setLatestDateText(
+            setLatesetHRDateText(
               topDate.toLocaleDateString("id-ID", {
                 weekday: "long",
                 day: "numeric",
@@ -199,10 +227,48 @@ export default function Records() {
                 </Pressable>
               </Cards>
 
-              {/* CARDS RIWAYAT HR (DENGAN CUPLIKAN CACHE) */}
+              {/* CARDS RIWAYAT HR AGREGASI */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT AGREGASI HR</Text>
-                <Text className="text-normal text-gray-500">{latestDateText || "Belum ada riwayat"}</Text>
+                <Text className="text-normal text-gray-500">{latestHRAggregationDateText || "Belum ada riwayat"}</Text>
+
+                <View className="flex-col gap-3 mt-2">
+                  {latestHRAggregation.length > 0 ? (
+                    latestHRAggregation.map((item, index) => {
+                      const rawTime = item.start_time || item.startTime;
+                      const itemDate = parseToDate(rawTime);
+                      const bpmValue = item.bpm ?? item.averageHR ?? 0;
+
+                      const timeFormatted = !isNaN(itemDate.getTime())
+                        ? itemDate.toLocaleTimeString("id-ID", {
+                            hour: "2-digit",
+                            minute: "2-digit",
+                          })
+                        : "--:--";
+
+                      return (
+                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4">
+                          <View className="w-2 h-2 rounded-full bg-black" />
+                          <Text className="text-xl">{timeFormatted} WIB:</Text>
+                          <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
+                        </View>
+                      );
+                    })
+                  ) : (
+                    <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
+                  )}
+                </View>
+
+                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
+                  <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                  <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
+                </Pressable>
+              </Cards>
+
+              {/* CARDS RIWAYAT HR REALTIME */}
+              <Cards className="flex flex-col gap-2">
+                <Text className="text-normal font-bold">RIWAYAT HR REALTIME</Text>
+                <Text className="text-normal text-gray-500">{latesetHRDateText || "Belum ada riwayat"}</Text>
 
                 <View className="flex-col gap-3 mt-2">
                   {latestHRRecords.length > 0 ? (
@@ -231,7 +297,7 @@ export default function Records() {
                   )}
                 </View>
 
-                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
+                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_realtime")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>

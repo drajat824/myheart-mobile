@@ -4,7 +4,7 @@ import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
-const CACHE_KEY = "@myheartz_aggregation_cache";
+const CACHE_KEY = "@myheartz_realtime_cache";
 
 export type AggregateRecord = {
   id?: number;
@@ -96,7 +96,7 @@ const filterRecordsByParams = (records: AggregateRecord[], date: Date, range: { 
   }
 };
 
-export default function RecordsHRAggregation() {
+export default function RecordsHRRealtime() {
   const [groupedByDay, setGroupedByDay] = useState<Record<string, AggregateRecord[]>>({});
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
@@ -136,24 +136,38 @@ export default function RecordsHRAggregation() {
           setIsLoading(true);
         }
 
-        // 3. Kirim timezone dinamis HP ke backend
         const userTz = getUserTimezoneOffset();
-        let endpoint = `/hr-aggregation?user_id=1&timezone=${encodeURIComponent(userTz)}`;
+        let endpoint = `/hr?user_id=1&timezone=${encodeURIComponent(userTz)}`;
 
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);
           const endStr = formatDateToParam(rangeFilter.end);
           endpoint += `&start_time=${startStr}&end_time=${endStr}`;
         } else {
-          // Cukup kirimkan date string YYYY-MM-DD
           const selectedStr = formatDateToParam(dateFilter);
           endpoint += `&date=${selectedStr}`;
         }
 
-        const data = await apiService.get<AggregateRecord[]>(endpoint);
-        setGroupedByDay(groupData(data));
+        const newData = await apiService.get<AggregateRecord[]>(endpoint);
+        setGroupedByDay(groupData(newData));
 
-        await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(data));
+        // 💡 MERGE CACHE: Gabungkan data baru dengan data yang sudah terimpan di AsyncStorage
+        try {
+          const cached = await AsyncStorage.getItem(CACHE_KEY);
+          let existingCache: AggregateRecord[] = cached ? JSON.parse(cached) : [];
+
+          // Gunakan Map berdasarkan ID / timestamp agar tidak ada data duplikat
+          const combinedMap = new Map<string, AggregateRecord>();
+          [...existingCache, ...newData].forEach((item) => {
+            const key = `${item.id || item.start_time || item.startTime}`;
+            combinedMap.set(key, item);
+          });
+
+          const mergedList = Array.from(combinedMap.values());
+          await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(mergedList));
+        } catch (e) {
+          console.error("Gagal memperbarui cache riwayat:", e);
+        }
       } catch (error) {
         console.error("Gagal menarik riwayat HR, mencoba memuat dari cache:", error);
 
@@ -244,7 +258,7 @@ export default function RecordsHRAggregation() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT AGREGASI HR" />
+        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT REALTIME HR" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex flex-1">

@@ -5,6 +5,7 @@ export default function AuthLayout() {
     <Stack>
       <Stack.Screen name="records_disorder" options={{ headerShown: false }} />
       <Stack.Screen name="records_hr_aggregation" options={{ headerShown: false }} />
+      <Stack.Screen name="records_hr_realtime" options={{ headerShown: false }} />
       <Stack.Screen name="records_periodic" options={{ headerShown: false }} />
       <Stack.Screen name="dashboard_profile" options={{ headerShown: false }} />
       <Stack.Screen name="dashboard_smartwatch" options={{ headerShown: false }} />
