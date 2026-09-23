@@ -166,20 +166,35 @@ export default function Records() {
               <Text className="text-normal text-gray-500">Rabu, 25 Agustus 2026</Text>
 
               <View className="flex-col gap-3 mt-2">
-                <View className="flex-row items-center gap-4">
-                  <View className="w-2 h-2 rounded-full bg-black" />
-                  <Text className="text-xl">Berat/Tinggi Badan:</Text>
-                  <Text className="text-xl font-semibold">89 kg/170 cm</Text>
+                <View className="gap-2">
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2 rounded-full bg-black" />
+                    <Text className="text-xl">Berat/Tinggi Badan</Text>
+                  </View>
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2" />
+                    <Text className="text-xl font-semibold">89 kg/170 cm</Text>
+                  </View>
                 </View>
-                <View className="flex-row items-center gap-4">
-                  <View className="w-2 h-2 rounded-full bg-black" />
-                  <Text className="text-xl">Kolestrol:</Text>
-                  <Text className="text-xl font-semibold">200 mg/dL</Text>
+                <View className="gap-2">
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2 rounded-full bg-black" />
+                    <Text className="text-xl">Kolestrol</Text>
+                  </View>
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2" />
+                    <Text className="text-xl font-semibold">200 mg/dL</Text>
+                  </View>
                 </View>
-                <View className="flex-row items-center gap-4">
-                  <View className="w-2 h-2 rounded-full bg-black" />
-                  <Text className="text-xl">Gula Darah:</Text>
-                  <Text className="text-xl font-semibold">100 mg/dL</Text>
+                <View className="gap-2">
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2 rounded-full bg-black" />
+                    <Text className="text-xl">Gula Darah</Text>
+                  </View>
+                  <View className="flex-row items-center gap-4">
+                    <View className="w-2 h-2" />
+                    <Text className="text-xl font-semibold">100 mg/dL</Text>
+                  </View>
                 </View>
               </View>
 
@@ -209,9 +224,9 @@ export default function Records() {
                         : "--:--";
 
                       return (
-                        <View key={`${item.recorded_at}-${index}`} className="flex-row items-center gap-4">
+                        <View key={`${item.recorded_at}-${index}`} className="flex-row items-center gap-4 justify-between">
                           <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl capitalize">{item.issue_type}:</Text>
+                          <Text className="text-xl capitalize flex-1">{item.issue_type}:</Text>
                           <Text className="text-xl font-semibold">{timeFormatted} WIB</Text>
                         </View>
                       );
@@ -247,9 +262,9 @@ export default function Records() {
                         : "--:--";
 
                       return (
-                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4">
+                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4 justify-between">
                           <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl">{timeFormatted} WIB:</Text>
+                          <Text className="text-xl flex-1">{timeFormatted} WIB:</Text>
                           <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
                         </View>
                       );
@@ -285,9 +300,9 @@ export default function Records() {
                         : "--:--";
 
                       return (
-                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4">
+                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4 justify-between">
                           <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl">{timeFormatted} WIB:</Text>
+                          <Text className="text-xl flex-1">{timeFormatted} WIB:</Text>
                           <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
                         </View>
                       );
