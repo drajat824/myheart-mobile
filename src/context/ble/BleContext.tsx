@@ -102,6 +102,36 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
     }, 10000);
   };
 
+  const setupHeartRateMonitoring = async (connDevice: Device) => {
+    try {
+      const services = await connDevice.services();
+
+      // Cari Service Heart Rate (180d) atau ambil service pertama sebagai fallback
+      const hrService = services.find((s) => s.uuid.toLowerCase().includes(HEART_RATE_SERVICE_UUID)) || services[0];
+      if (!hrService) return;
+
+      const characteristics = await connDevice.characteristicsForService(hrService.uuid);
+
+      // Cari Characteristic Heart Rate (2a37) atau characteristic yang mendukung Notifiable/Indicatable
+      const hrChar = characteristics.find((c) => c.uuid.toLowerCase().includes(HEART_RATE_CHARACTERISTIC_UUID) || ((c.isNotifiable || c.isIndicatable) && c.uuid.toLowerCase().includes(HEART_RATE_CHARACTERISTIC_UUID))) || characteristics.find((c) => c.isNotifiable || c.isIndicatable);
+
+      if (hrChar) {
+        const sub = connDevice.monitorCharacteristicForService(hrService.uuid, hrChar.uuid, (error, monitoredCharacteristic) => {
+          if (error || !monitoredCharacteristic?.value) return;
+
+          const sensorValue = parseHeartRateValue(monitoredCharacteristic.value);
+          if (sensorValue !== null && sensorValue > 0) {
+            addHRRef.current(sensorValue);
+            resetHrTimeout();
+          }
+        });
+        subscriptions.current.push(sub);
+      }
+    } catch (err) {
+      console.error("[BLE] Gagal setup HR monitoring:", err);
+    }
+  };
+
   const connectToDevice = useCallback(
     async (device: Device | string | null, isReconnect = false) => {
       if (!device) return;
@@ -120,11 +150,11 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
         clearSubscriptions();
         setIsLoadingConnected(true);
 
+        // Koneksi & Discovery Service
         const connDevice = await manager.connectToDevice(targetDeviceId);
         await connDevice.discoverAllServicesAndCharacteristics();
 
-        setConnectedDeviceState(connDevice);
-
+        // Register Disconnect Listener
         const disconnectSub = manager.onDeviceDisconnected(targetDeviceId, () => {
           if (isIntentionalDisconnect.current) {
             console.log("[BLE] Intentional disconnect untuk background operation.");
@@ -139,50 +169,24 @@ export const BleProvider = ({ children }: { children: ReactNode }) => {
           }
           addHRRef.current(0);
         });
-
         subscriptions.current.push(disconnectSub);
 
-        // 3. HANYA SUBSCRIBE PADA CHARACTERISTIC HEART RATE (ATAU ABAIKAN NON-HR)
-        const services = await connDevice.services();
-        for (const service of services) {
-          const characteristics = await connDevice.characteristicsForService(service.uuid);
-          for (const characteristic of characteristics) {
-            const isHrService = service.uuid.toLowerCase().includes(HEART_RATE_SERVICE_UUID);
-            const isHrChar = characteristic.uuid.toLowerCase().includes(HEART_RATE_CHARACTERISTIC_UUID);
+        // Target langsung ke Service & Characteristic HR (Cepat & Ringan)
+        await setupHeartRateMonitoring(connDevice);
 
-            // Filter hanya characteristic yang mendukung Notifiable / Indicatable
-            if (characteristic.isNotifiable || characteristic.isIndicatable) {
-              // Jika ini service/characteristic HR khusus atau fallback universal
-              if (isHrService || isHrChar || services.length === 1) {
-                const sub = connDevice.monitorCharacteristicForService(service.uuid, characteristic.uuid, (error, monitoredCharacteristic) => {
-                  if (error || !monitoredCharacteristic?.value) {
-                    return; // ⚠️ JANGAN panggil addHR(0) di sini agar tidak spamming error
-                  }
-
-                  const sensorValue = parseHeartRateValue(monitoredCharacteristic.value);
-                  if (sensorValue !== null && sensorValue > 0) {
-                    addHRRef.current(sensorValue);
-                    resetHrTimeout();
-                  }
-                  // ⚠️ Hapus pemanggilan else { addHR(0) } dari characteristic non-HR!
-                });
-                subscriptions.current.push(sub);
-              }
-            }
-          }
-        }
-
-        setIsLoadingConnected(false);
+        // Update state koneksi sekaligus
+        setConnectedDeviceState(connDevice);
       } catch (error) {
         console.error("Gagal terhubung ke device:", error);
-        setIsLoadingConnected(false);
         if (!isReconnect) {
           setConnectedDeviceState(null);
         }
         throw error;
+      } finally {
+        setIsLoadingConnected(false);
       }
     },
-    [manager, stopScan, resetHrTimeout], // ⚠️ addHR SUDAH DIHAPUS DARI DEPENDENCY ARRAY
+    [manager, stopScan, resetHrTimeout],
   );
 
   const disconnectDevice = async () => {
