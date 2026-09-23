@@ -3,7 +3,7 @@ import MaterialDesignIcons from "@react-native-vector-icons/material-design-icon
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
 import { useRouter } from "expo-router";
-import { useEffect, useMemo, useRef, useState } from "react";
+import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
 import { WebView } from "react-native-webview";
@@ -11,31 +11,27 @@ import { Button, Cards, CustomButton, Header, Loading, WrapperMain } from "../..
 import { HRAggregateChartCard } from "../../component/HRAggregateChartCard";
 import { HRRealtimeChartCard } from "../../component/HRRealtimeChartCard";
 
-export default function Dashboard() {
-  const router = useRouter();
-
-  // Menggunakan data global dari HR Context
-  const { currentHR, simulateStatus, displayStatus, setSimulateStatus, realtimeChartData, aggregateChartData, resetStorage } = useHR();
-  const { connectedDeviceName, isLoadingConnected } = useBle();
-
+// ==========================================
+// SUB-KOMPONEN TERISOLASI: MODEL 3D JANTUNG
+// (Menggunakan React.memo agar tidak re-render saat currentHR/Chart berubah)
+// ==========================================
+const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
   const [isSwitchOn, setIsSwitchOn] = useState(false);
   const [modelBase64, setModelBase64] = useState<string | null>(null);
-
   const webViewRef = useRef<WebView>(null);
 
-  const onToggleSwitch = () => {
-    setIsSwitchOn((previous) => !previous);
-  };
+  const onToggleSwitch = () => setIsSwitchOn((prev) => !prev);
 
-  // 1. Load file GLB lokal dan ubah ke Base64
+  // 1. Read GLB File sekali saja saat mount
   useEffect(() => {
+    let isMounted = true;
     const loadModelBase64 = async () => {
       try {
         const asset = Asset.fromModule(require("../../../assets/images/realistic_human_heart.glb"));
         await asset.downloadAsync();
-
         const uri = asset.localUri || asset.uri;
-        if (uri) {
+
+        if (uri && isMounted) {
           const base64 = await FileSystem.readAsStringAsync(uri, { encoding: FileSystem.EncodingType.Base64 });
           setModelBase64(base64);
         }
@@ -43,22 +39,25 @@ export default function Dashboard() {
         console.error("Gagal membaca file GLB ke Base64:", error);
       }
     };
-
     loadModelBase64();
+    return () => {
+      isMounted = false;
+    };
   }, []);
 
-  // 2. Drive animasi 3D Heart dengan data currentHR realtime
+  // 2. Kirim pesan ke WebView via Ref (Tanpa memicu React Re-render)
   useEffect(() => {
-    if (webViewRef.current) {
-      const data = JSON.stringify({
-        hr: currentHR,
-        isRotating: isSwitchOn,
-      });
-      webViewRef.current.postMessage(data);
+    if (webViewRef.current && modelBase64) {
+      webViewRef.current.postMessage(
+        JSON.stringify({
+          hr: currentHR,
+          isRotating: isSwitchOn,
+        }),
+      );
     }
-  }, [currentHR, isSwitchOn]);
+  }, [currentHR, isSwitchOn, modelBase64]);
 
-  // 3. HTML Template untuk WebView (Menggunakan currentHR Realtime)
+  // 3. Static HTML string memoization
   const htmlContent = useMemo(() => {
     if (!modelBase64) return "";
     return `
@@ -78,8 +77,8 @@ export default function Dashboard() {
         <div id="canvas-container"></div>
         <script>
           let scene, camera, renderer, heartGroup, clock;
-          let currentHR = ${currentHR};
-          let isRotating = ${isSwitchOn};
+          let currentHR = 0;
+          let isRotating = false;
 
           function init() {
             const container = document.getElementById('canvas-container');
@@ -92,9 +91,9 @@ export default function Dashboard() {
             camera = new THREE.PerspectiveCamera(45, width / height, 0.01, 1000);
             camera.position.set(0, 0, 5);
 
-            renderer = new THREE.WebGLRenderer({ antialias: true, alpha: false, preserveDrawingBuffer: true });
+            renderer = new THREE.WebGLRenderer({ antialias: false, alpha: false, powerPreference: "high-performance" });
             renderer.setSize(width, height);
-            renderer.setPixelRatio(window.devicePixelRatio);
+            renderer.setPixelRatio(Math.min(window.devicePixelRatio, 2));
             renderer.setClearColor(0xf5f5f5, 1);
             container.appendChild(renderer.domElement);
 
@@ -135,7 +134,6 @@ export default function Dashboard() {
               scene.add(heartGroup);
 
               camera.lookAt(0, 0, 0);
-
               clock = new THREE.Clock();
               animate();
             });
@@ -143,22 +141,18 @@ export default function Dashboard() {
 
           function animate() {
             requestAnimationFrame(animate);
-
             if (clock && heartGroup) {
               const elapsedTime = clock.getElapsedTime();
-
               if (currentHR > 0) {
                 const bps = currentHR / 60;
                 const beatFactor = Math.pow(Math.sin(elapsedTime * bps * Math.PI), 4) * 0.12;
                 const scale = 1 + beatFactor;
                 heartGroup.scale.set(scale, scale, scale);
               }
-
               if (isRotating) {
                 heartGroup.rotation.y += 0.01;
               }
             }
-
             renderer.render(scene, camera);
           }
 
@@ -172,13 +166,44 @@ export default function Dashboard() {
 
           document.addEventListener('message', (e) => handleMessage(e.data));
           window.addEventListener('message', (e) => handleMessage(e.data));
-
           window.onload = init;
         </script>
       </body>
     </html>
   `;
   }, [modelBase64]);
+
+  return (
+    <Cards className="flex flex-col gap-3">
+      <Text className="text-label">MODEL JANTUNG</Text>
+      <View className="flex flex-col">
+        <View className="w-full h-72 rounded-lg overflow-hidden bg-[#F5F5F5]">
+          {modelBase64 ? (
+            <WebView ref={webViewRef} originWhitelist={["*"]} source={{ html: htmlContent }} style={{ flex: 1, backgroundColor: "#F5F5F5" }} containerStyle={{ backgroundColor: "#F5F5F5" }} scrollEnabled={false} javaScriptEnabled={true} domStorageEnabled={true} androidLayerType="hardware" />
+          ) : (
+            <View className="flex-1 justify-center items-center">
+              <Text className="text-gray-500">Memuat model 3D...</Text>
+            </View>
+          )}
+        </View>
+
+        <View className="flex-1 flex flex-row justify-between items-center mt-3">
+          <Text className="text-normal font-semibold">Rotasi Otomatis</Text>
+          <Switch color="#017BFE" value={isSwitchOn} onValueChange={onToggleSwitch} />
+        </View>
+      </View>
+    </Cards>
+  );
+});
+
+// ==========================================
+// KOMPONEN UTAMA DASHBOARD
+// ==========================================
+export default function Dashboard() {
+  const router = useRouter();
+
+  const { currentHR, simulateStatus, displayStatus, setSimulateStatus, realtimeChartData, aggregateChartData, resetStorage } = useHR();
+  const { connectedDeviceName, isLoadingConnected } = useBle();
 
   return (
     <WrapperMain>
@@ -213,7 +238,7 @@ export default function Dashboard() {
 
         {/* CONTENT */}
         <View className="flex flex-col gap-4 mt-4">
-          {/* 3. CARD HR SMARTWATCH */}
+          {/* CARD HR SMARTWATCH */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-label">HR SMARTWATCH</Text>
             <View className="flex flex-row items-end justify-between">
@@ -226,64 +251,35 @@ export default function Dashboard() {
             </View>
           </Cards>
 
-          {/* 1. LIVE CHART HR REALTIME (DILENGKAPI CACHING 24 JAM) */}
-          {/* <Cards className="flex flex-col gap-3"> */}
-          {/* <View className="flex-row items-center justify-between">
-              <View className="flex-row items-center gap-2">
-                <View className="w-3 h-3 rounded-full bg-theme-red" />
-                <Text className="text-label text-theme-red font-bold">LIVE HR REALTIME (PER DATA)</Text>
-              </View>
-            </View> */}
-
-          <View className="bg-white rounded-xl py-4 px-2 shadow-lg">
-            <View className="flex-row items-center gap-2 pl-2 pb-4">
-              <View className="w-3 h-3 rounded-full bg-theme-green" />
-              <Text className="text-label text-theme-red font-bold">LIVE HR REALTIME</Text>
+          {/* REALTIME CHART (Dibersihkan dari wrapper ganda) */}
+          <Cards className="flex flex-col gap-2">
+            <Text className="text-label pb-3">REALTIME HR</Text>
+            <View className="flex-col gap-1">
+              <HRRealtimeChartCard data={realtimeChartData} />
+              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pr-2 pt-1" onPress={() => router.push("/records_hr_realtime")}>
+                <Text className="text-theme-red text-lg font-medium">Lihat Selengkapnya</Text>
+                <MaterialDesignIcons name="chevron-right" size={24} color="#DB3546" />
+              </Pressable>
             </View>
-            <HRRealtimeChartCard data={realtimeChartData} />
-            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4 pr-4" onPress={() => router.push("/records_hr_realtime")}>
-              <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
-              <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
-            </Pressable>
-          </View>
-          {/* </Cards> */}
+          </Cards>
 
-          {/* 2. CHART AGREGASI HR (PER 10 MENIT) */}
-          <View className="bg-white rounded-xl py-4 px-2 shadow-lg">
-            <View className="flex-row items-center gap-2 pl-2 pb-4">
-              <View className="w-3 h-3 rounded-full bg-theme-green" />
-              <Text className="text-label text-theme-red font-bold">HR AGREGASI</Text>
+          {/* AGGREGATE CHART (Dibersihkan dari wrapper ganda) */}
+          <Cards className="flex flex-col gap-2">
+            <Text className="text-label pb-3">AGREGASI HR (10 MENIT)</Text>
+            <View className="flex-col gap-1">
+              <HRAggregateChartCard data={aggregateChartData} />
+              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pr-2 pt-1" onPress={() => router.push("/records_hr_aggregation")}>
+                <Text className="text-theme-red text-lg font-medium">Lihat Selengkapnya</Text>
+                <MaterialDesignIcons name="chevron-right" size={24} color="#DB3546" />
+              </Pressable>
             </View>
-            <HRAggregateChartCard data={aggregateChartData} />
-            <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4 pr-4" onPress={() => router.push("/records_hr_aggregation")}>
-              <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
-              <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
-            </Pressable>
-          </View>
+          </Cards>
 
-          {/* 4. MODEL 3D HEART VIA WEBVIEW */}
+          {/* MODEL 3D HEART VIA WEBVIEW (Sub-komponen Memoized) */}
           <View className="flex flex-col gap-4 mt-2 mb-10">
-            <Cards className="flex flex-col gap-3">
-              <Text className="text-label">MODEL JANTUNG</Text>
-              <View className="flex flex-col">
-                <View className="w-full h-72 rounded-lg overflow-hidden bg-[#F5F5F5]">
-                  {modelBase64 ? (
-                    <WebView ref={webViewRef} originWhitelist={["*"]} source={{ html: htmlContent }} style={{ flex: 1, backgroundColor: "#F5F5F5" }} containerStyle={{ backgroundColor: "#F5F5F5" }} scrollEnabled={false} javaScriptEnabled={true} domStorageEnabled={true} renderToHardwareTextureAndroid={false} />
-                  ) : (
-                    <View className="flex-1 justify-center items-center">
-                      <Text className="text-gray-500">Memuat model 3D...</Text>
-                    </View>
-                  )}
-                </View>
+            <Heart3DCard currentHR={currentHR} />
 
-                <View className="flex-1 flex flex-row justify-between items-center mt-3">
-                  <Text className="text-normal font-semibold">Rotasi Otomatis</Text>
-                  <Switch color="#017BFE" value={isSwitchOn} onValueChange={onToggleSwitch} />
-                </View>
-              </View>
-            </Cards>
-
-            {/* 5. SIMULASI GANGGUAN JANTUNG */}
+            {/* SIMULASI GANGGUAN JANTUNG */}
             <Cards className="flex flex-col gap-3">
               <Text className="text-label">{`SIMULASI GANGGUAN\nJANTUNG`}</Text>
               <View className="flex flex-col gap-2 justify-center items-center mt-2">
@@ -299,7 +295,7 @@ export default function Dashboard() {
               </View>
             </Cards>
 
-            {/* TOMBOL CLEAR ASYNCSTORAGE */}
+            {/* PEMBERSIHAN CACHE */}
             <Cards className="flex flex-col gap-2 mb-10">
               <Text className="text-label">PEMBERSIHAN CACHE</Text>
               <CustomButton onPress={resetStorage} buttonColor="#DB3546" borderRadius={10}>

@@ -28,7 +28,7 @@ export const HRRealtimeChartCard: React.FC<Props> = ({ data }) => {
     <View className="overflow-hidden -ml-2">
       <LineChart
         data={chartData}
-        width={screenWidth - 80}
+        width={screenWidth - 120}
         height={140}
         thickness={2}
         color="#038175"

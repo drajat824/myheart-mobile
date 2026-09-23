@@ -9,6 +9,7 @@ const STORAGE_KEY_LATEST_HR = "@myheartz_latest_hr";
 
 const TWENTY_FOUR_HOURS_MS = 24 * 60 * 60 * 1000;
 const FIVE_MINUTES_MS = 5 * 60 * 1000;
+const agregateMinutes = 10;
 
 export const HRContext = createContext<HRContextType | null>(null);
 
@@ -100,6 +101,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
       }
     }
   }, []);
+
   const setSimulateStatus = useCallback(
     (status: SimulateStatus) => {
       simulateStatusRef.current = status;
@@ -115,13 +117,13 @@ export function HRProvider({ children }: { children: ReactNode }) {
 
   const currentHR = rawHR <= 0 ? 0 : Math.max(0, rawHR + getOffset(simulateStatus));
   const displayStatus: SimulateStatus | "-" = rawHR <= 0 ? "-" : simulateStatus;
+  const lastChartUpdateRef = useRef<number>(0);
 
   // ----------------------------------------------------
   // PENAMBAHAN HR REALTIME (PER DATA / PER DETIK)
   // ----------------------------------------------------
   const addHR = useCallback(
     (value: number) => {
-      // Abaikan jika nilai yang masuk sama persis dengan yang sedang aktif (mencegah re-render tak perlu)
       if (value === rawHRRef.current && value === 0) return;
 
       setRawHR(value);
@@ -133,16 +135,21 @@ export function HRProvider({ children }: { children: ReactNode }) {
 
       if (effectiveHR > 0) {
         const timestamp = Date.now();
-        const newPoint: ChartPoint = {
-          value: effectiveHR,
-          label: formatTimeLabel(timestamp),
-          timestamp,
-        };
 
         realtimeBuffer.current.push({ value: effectiveHR, timestamp });
         aggregateBuffer.current.push({ value: effectiveHR, timestamp });
 
-        setRealtimeChartData((prevData) => [...prevData, newPoint].slice(-15));
+        // THROTTLING CHART UPDATE: Update UI Chart maksimal 1 detik sekali
+        if (timestamp - lastChartUpdateRef.current >= 1000) {
+          lastChartUpdateRef.current = timestamp;
+          const newPoint: ChartPoint = {
+            value: effectiveHR,
+            label: formatTimeLabel(timestamp),
+            timestamp,
+          };
+
+          setRealtimeChartData((prevData) => [...prevData, newPoint].slice(-15));
+        }
 
         evaluateAndPostIssue(status, effectiveHR);
       }
@@ -268,7 +275,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
       } catch (error) {
         console.error("[POST /hr-aggregation] Error:", error);
       }
-    }, 10 * 60000);
+    }, agregateMinutes * 60000);
 
     return () => {
       clearInterval(realtimeInterval);
