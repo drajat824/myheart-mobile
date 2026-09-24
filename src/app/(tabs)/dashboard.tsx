@@ -1,4 +1,5 @@
-import { useBle, useHR } from "@/context";
+import { useBle, useHR, useModal } from "@/context";
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
@@ -7,13 +8,12 @@ import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
 import { Switch } from "react-native-paper";
 import { WebView } from "react-native-webview";
-import { Button, Cards, CustomButton, Header, Loading, WrapperMain } from "../../component";
+import { Button, Cards, CustomButton, Header, Loading, Modal, WrapperMain } from "../../component";
 import { HRAggregateChartCard } from "../../component/HRAggregateChartCard";
 import { HRRealtimeChartCard } from "../../component/HRRealtimeChartCard";
 
 // ==========================================
 // SUB-KOMPONEN TERISOLASI: MODEL 3D JANTUNG
-// (Menggunakan React.memo agar tidak re-render saat currentHR/Chart berubah)
 // ==========================================
 const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
   const [isSwitchOn, setIsSwitchOn] = useState(false);
@@ -22,7 +22,6 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
 
   const onToggleSwitch = () => setIsSwitchOn((prev) => !prev);
 
-  // 1. Read GLB File sekali saja saat mount
   useEffect(() => {
     let isMounted = true;
     const loadModelBase64 = async () => {
@@ -45,7 +44,6 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
     };
   }, []);
 
-  // 2. Kirim pesan ke WebView via Ref (Tanpa memicu React Re-render)
   useEffect(() => {
     if (webViewRef.current && modelBase64) {
       webViewRef.current.postMessage(
@@ -57,7 +55,6 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
     }
   }, [currentHR, isSwitchOn, modelBase64]);
 
-  // 3. Static HTML string memoization
   const htmlContent = useMemo(() => {
     if (!modelBase64) return "";
     return `
@@ -177,17 +174,17 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
     <Cards className="flex flex-col gap-3">
       <Text className="text-label">MODEL JANTUNG</Text>
       <View className="flex flex-col">
-        <View className="w-full h-72 rounded-lg overflow-hidden bg-[#F5F5F5]">
+        <View className="h-72 w-full overflow-hidden rounded-lg bg-[#F5F5F5]">
           {modelBase64 ? (
             <WebView ref={webViewRef} originWhitelist={["*"]} source={{ html: htmlContent }} style={{ flex: 1, backgroundColor: "#F5F5F5" }} containerStyle={{ backgroundColor: "#F5F5F5" }} scrollEnabled={false} javaScriptEnabled={true} domStorageEnabled={true} androidLayerType="hardware" />
           ) : (
-            <View className="flex-1 justify-center items-center">
+            <View className="flex-1 items-center justify-center">
               <Text className="text-gray-500">Memuat model 3D...</Text>
             </View>
           )}
         </View>
 
-        <View className="flex-1 flex flex-row justify-between items-center mt-3">
+        <View className="mt-3 flex flex-1 flex-row items-center justify-between">
           <Text className="text-normal font-semibold">Rotasi Otomatis</Text>
           <Switch color="#017BFE" value={isSwitchOn} onValueChange={onToggleSwitch} />
         </View>
@@ -201,9 +198,52 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
 // ==========================================
 export default function Dashboard() {
   const router = useRouter();
+  const { openModal, closeModal } = useModal();
 
   const { currentHR, simulateStatus, displayStatus, setSimulateStatus, realtimeChartData, aggregateChartData, resetStorage } = useHR();
   const { connectedDeviceName, isLoadingConnected } = useBle();
+
+  // State untuk menyimpan data user dari AsyncStorage
+  const [userName, setUserName] = useState("Memuat...");
+  const [userEmail, setUserEmail] = useState("Memuat...");
+
+  // Mengambil data user saat komponen di-mount
+  useEffect(() => {
+    const fetchUserData = async () => {
+      try {
+        const userDataStr = await AsyncStorage.getItem("userData");
+        if (userDataStr) {
+          const userData = JSON.parse(userDataStr);
+          setUserName(userData.name || "User");
+          setUserEmail(userData.email || "email@domain.com");
+        }
+      } catch (error) {
+        console.error("Gagal mengambil data user:", error);
+      }
+    };
+
+    fetchUserData();
+  }, []);
+
+  // Buka Modal Logout
+  const handleLogout = () => {
+    openModal("logout-modal");
+  };
+
+  // Eksekusi Logout
+  const confirmLogout = async () => {
+    try {
+      closeModal("logout-modal");
+      // Hapus token dan data user dari storage
+      await AsyncStorage.removeItem("userToken");
+      await AsyncStorage.removeItem("userData");
+
+      // Arahkan kembali ke halaman login dan hapus history
+      router.replace("/login");
+    } catch (error) {
+      console.error("Gagal melakukan logout:", error);
+    }
+  };
 
   return (
     <WrapperMain>
@@ -211,33 +251,34 @@ export default function Dashboard() {
         {/* HEADER */}
         <Header>
           <View className="flex-row items-center justify-between">
-            <Text className="text-white text-4xl font-light">
-              Hallo, <Text className="font-semibold">John Doe</Text>
+            <Text className="text-4xl font-light text-white">
+              Hallo, <Text className="font-semibold">{userName}</Text>
             </Text>
-            <Pressable className="active:opacity-40" onPress={() => router.navigate("/dashboard_profile")}>
-              <MaterialDesignIcons name="cog-outline" size={35} color="#FFFFFF" />
+            {/* Tombol Logout */}
+            <Pressable className="active:opacity-40" onPress={handleLogout}>
+              <MaterialDesignIcons name="logout" size={35} color="#FFFFFF" />
             </Pressable>
           </View>
 
-          <Text className="text-normal text-white font-light">john_doe@gmail.com</Text>
+          <Text className="text-normal pb-2 font-light text-white">{userEmail}</Text>
 
           <CustomButton onPress={() => router.navigate("/dashboard_smartwatch")} buttonColor="#DB3546" borderRadius={10}>
             <View className="flex flex-row items-center gap-2">
               <MaterialDesignIcons name="watch-import" size={40} color="#FFFFFF" />
-              <Text className="text-3xl text-white font-normal">
+              <Text className="text-3xl font-normal text-white">
                 HUBUNGKAN{"\n"}
                 SMARTWATCH
               </Text>
             </View>
           </CustomButton>
 
-          <Text className="text-normal text-white font-light">
+          <Text className="text-normal pt-2 font-light text-white">
             DEVICE: <Text className="font-semibold">{connectedDeviceName ? connectedDeviceName : "-"}</Text>
           </Text>
         </Header>
 
         {/* CONTENT */}
-        <View className="flex flex-col gap-4 mt-4">
+        <View className="mt-4 flex flex-col gap-4">
           {/* CARD HR SMARTWATCH */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-label">HR SMARTWATCH</Text>
@@ -247,42 +288,42 @@ export default function Dashboard() {
                 <Text className="text-normal font-normal text-black">bpm</Text>
               </Text>
 
-              <Text className={`text-3xl font-light pb-[4] ${displayStatus !== "-" && connectedDeviceName && !isLoadingConnected ? (displayStatus === "NORMAL" ? "text-theme-green" : "text-red-400") : "text-gray-400"}`}>{displayStatus}</Text>
+              <Text className={`pb-[4] text-3xl font-light ${displayStatus !== "-" && connectedDeviceName && !isLoadingConnected ? (displayStatus === "NORMAL" ? "text-theme-green" : "text-red-400") : "text-gray-400"}`}>{displayStatus}</Text>
             </View>
           </Cards>
 
-          {/* REALTIME CHART (Dibersihkan dari wrapper ganda) */}
+          {/* REALTIME CHART */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-label pb-3">REALTIME HR</Text>
             <View className="flex-col gap-1">
               <HRRealtimeChartCard data={realtimeChartData} />
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pr-2 pt-1" onPress={() => router.push("/records_hr_realtime")}>
-                <Text className="text-theme-red text-lg font-medium">Lihat Selengkapnya</Text>
+              <Pressable className="flex flex-row items-center justify-end pr-2 pt-1 active:opacity-40" onPress={() => router.push("/records_hr_realtime")}>
+                <Text className="text-lg font-medium text-theme-red">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" size={24} color="#DB3546" />
               </Pressable>
             </View>
           </Cards>
 
-          {/* AGGREGATE CHART (Dibersihkan dari wrapper ganda) */}
+          {/* AGGREGATE CHART */}
           <Cards className="flex flex-col gap-2">
             <Text className="text-label pb-3">AGREGASI HR (10 MENIT)</Text>
             <View className="flex-col gap-1">
               <HRAggregateChartCard data={aggregateChartData} />
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pr-2 pt-1" onPress={() => router.push("/records_hr_aggregation")}>
-                <Text className="text-theme-red text-lg font-medium">Lihat Selengkapnya</Text>
+              <Pressable className="flex flex-row items-center justify-end pr-2 pt-1 active:opacity-40" onPress={() => router.push("/records_hr_aggregation")}>
+                <Text className="text-lg font-medium text-theme-red">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" size={24} color="#DB3546" />
               </Pressable>
             </View>
           </Cards>
 
-          {/* MODEL 3D HEART VIA WEBVIEW (Sub-komponen Memoized) */}
-          <View className="flex flex-col gap-4 mt-2 mb-10">
+          {/* MODEL 3D HEART VIA WEBVIEW */}
+          <View className="mb-10 mt-2 flex flex-col gap-4">
             <Heart3DCard currentHR={currentHR} />
 
             {/* SIMULASI GANGGUAN JANTUNG */}
             <Cards className="flex flex-col gap-3">
               <Text className="text-label">{`SIMULASI GANGGUAN\nJANTUNG`}</Text>
-              <View className="flex flex-col gap-2 justify-center items-center mt-2">
+              <View className="mt-2 flex flex-col items-center justify-center gap-2">
                 <Button mode={simulateStatus === "NORMAL" ? "contained" : "outlined"} className="w-full" onPress={() => setSimulateStatus("NORMAL")}>
                   <Text style={{ color: simulateStatus === "NORMAL" ? "#fff" : "#038175" }}>NORMAL</Text>
                 </Button>
@@ -296,18 +337,41 @@ export default function Dashboard() {
             </Cards>
 
             {/* PEMBERSIHAN CACHE */}
-            <Cards className="flex flex-col gap-2 mb-10">
+            <Cards className="mb-10 flex flex-col gap-2">
               <Text className="text-label">PEMBERSIHAN CACHE</Text>
               <CustomButton onPress={resetStorage} buttonColor="#DB3546" borderRadius={10}>
                 <View className="flex flex-row items-center justify-center gap-2 py-1">
                   <MaterialDesignIcons name="delete-outline" size={24} color="#FFFFFF" />
-                  <Text className="text-white text-lg font-semibold">CLEAR ASYNCSTORAGE</Text>
+                  <Text className="text-lg font-semibold text-white">CLEAR ASYNCSTORAGE</Text>
                 </View>
               </CustomButton>
             </Cards>
           </View>
         </View>
       </View>
+
+      {/* MODAL KONFIRMASI LOGOUT */}
+      <Modal id="logout-modal">
+        <View className="mx-8 flex justify-center">
+          <Cards>
+            <Text className="mb-2 text-2xl font-bold text-red-600">Konfirmasi Keluar</Text>
+            <Text className="mb-6 text-gray-700">Apakah Anda yakin ingin keluar dari akun ini?</Text>
+
+            <View className="flex flex-row justify-between gap-3">
+              <View className="flex-1">
+                <Button onPress={() => closeModal("logout-modal")} mode="outlined" textColor="#333333">
+                  BATAL
+                </Button>
+              </View>
+              <View className="flex-1">
+                <Button onPress={confirmLogout} mode="contained" buttonColor="#DB3546">
+                  KELUAR
+                </Button>
+              </View>
+            </View>
+          </Cards>
+        </View>
+      </Modal>
 
       <Loading visible={isLoadingConnected} />
     </WrapperMain>

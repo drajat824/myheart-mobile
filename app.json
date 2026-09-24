@@ -9,6 +9,7 @@
     "android": {
       "predictiveBackGestureEnabled": false,
       "package": "com.darojat.digitalhealth",
+      "googleServicesFile": "./google-services.json",
       "permissions": ["FOREGROUND_SERVICE", "FOREGROUND_SERVICE_CONNECTED_DEVICE", "WAKE_LOCK"]
     },
     "web": {
