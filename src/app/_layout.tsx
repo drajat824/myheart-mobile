@@ -1,9 +1,10 @@
+// _layout.tsx
 import { BleProvider, HRProvider } from "@/context";
 import { apiService } from "@/utils/apiService";
-import { registerBackgroundSync, syncAlarmsForeground } from "@/utils/notificationSync"; // IMPORT syncAlarmsForeground
+import { registerBackgroundSync, syncAlarmsForeground } from "@/utils/notificationSync";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
-import { Stack } from "expo-router";
+import { Stack, usePathname, useRouter } from "expo-router";
 import { useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Text, TouchableOpacity, View } from "react-native";
 import { PaperProvider } from "react-native-paper";
@@ -11,7 +12,6 @@ import { Cards, Modal } from "../component";
 import { ModalProvider, useModal } from "../context";
 import "./global.css";
 
-// 1. Daftarkan Background Task di luar siklus React
 registerBackgroundSync();
 
 Notifications.setNotificationHandler({
@@ -60,6 +60,8 @@ const parseToDate = (dateVal: string): Date => {
 };
 
 function RootLayoutContent() {
+  const router = useRouter();
+  const pathname = usePathname();
   const { openModal, closeModal } = useModal();
   const [activeSchedule, setActiveSchedule] = useState<MedicationSchedule | null>(null);
   const [isLoadingAction, setIsLoadingAction] = useState(false);
@@ -68,7 +70,6 @@ function RootLayoutContent() {
 
   const checkPendingSchedules = async () => {
     try {
-      // 1. CEK AUTENTIKASI: Jika belum login, hentikan proses pengecekan jadwal obat
       const token = await AsyncStorage.getItem("userToken");
       const userDataStr = await AsyncStorage.getItem("userData");
       if (!token || !userDataStr) {
@@ -86,7 +87,6 @@ function RootLayoutContent() {
       const todayStr = formatDateToParam(today);
       const yesterdayStr = formatDateToParam(yesterday);
 
-      // 2. Gunakan userId dinamis
       const schedules = (await apiService.get(`/medication-schedules?user_id=${userId}&timezone=${encodeURIComponent(userTz)}&start_date=${yesterdayStr}&end_date=${todayStr}&status=pending`)) as MedicationSchedule[];
 
       const now = new Date().getTime();
@@ -117,15 +117,12 @@ function RootLayoutContent() {
         closeModal("superRoot");
       }
     } catch (error) {
-      console.error("Failed to check pending schedules", error);
+      console.error("Gagal memeriksa jadwal tertunda", error);
     }
   };
 
   useEffect(() => {
-    // 1. Cek antrean obat yang terlewat (Trigger Modal)
     checkPendingSchedules();
-
-    // 2. Sinkronisasi alarm OS untuk jadwal obat masa depan (Foreground Sync)
     syncAlarmsForeground();
 
     const responseListener = Notifications.addNotificationResponseReceivedListener(() => {
@@ -144,13 +141,19 @@ function RootLayoutContent() {
         foregroundListener.remove?.();
       } catch (e) {}
     };
-  }, []);
+  }, [pathname]); // Pengecekan dipicu ulang setiap kali berpindah halaman (termasuk saat pertama masuk dashboard)
 
   const handleTaken = async () => {
     if (!activeSchedule) return;
     setIsLoadingAction(true);
     try {
-      await apiService.put(`/medication-schedules/${activeSchedule.id}`, { status: "taken", takenAt: new Date().toISOString() });
+      // Mengirimkan takenAt dalam format UTC menggunakan toISOString()
+      const utcTakenAt = new Date().toISOString();
+
+      await apiService.put(`/medication-schedules/${activeSchedule.id}`, {
+        status: "taken",
+        takenAt: utcTakenAt,
+      });
 
       if (snoozedRef.current[activeSchedule.id]) {
         delete snoozedRef.current[activeSchedule.id];
@@ -158,7 +161,7 @@ function RootLayoutContent() {
 
       await checkPendingSchedules();
     } catch (error) {
-      console.error("Gagal update status", error);
+      console.error("Gagal memperbarui status obat", error);
     } finally {
       setIsLoadingAction(false);
     }
