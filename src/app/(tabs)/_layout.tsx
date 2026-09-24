@@ -1,3 +1,4 @@
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { Tabs } from "expo-router";
 import { SymbolView } from "expo-symbols";
 import { Pressable, View } from "react-native";
@@ -17,7 +18,7 @@ export default function TabLayout() {
           height: 60 + insets.bottom,
           elevation: 0,
           paddingBottom: insets.bottom,
-          paddingTop: 8
+          paddingTop: 8,
         },
         tabBarActiveTintColor: "white",
         tabBarInactiveTintColor: "#a0a0a0",
@@ -32,7 +33,7 @@ export default function TabLayout() {
           tabBarButton: ({ onPress, children, ...props }: any) => {
             const isFocused = props.focused ?? props["aria-selected"];
             return (
-              <Pressable {...props} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true}} className="w-fit h-fit justify-center items-center active:bg-white active:opacity-60 rounded-full">
+              <Pressable {...props} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true }} className="w-fit h-fit justify-center items-center active:bg-white active:opacity-60 rounded-full">
                 <SymbolView name={{ ios: "text.book.closed", android: "library_books" }} tintColor={isFocused ? "#ffffff" : "#888"} size={35} />
               </Pressable>
             );
@@ -49,8 +50,8 @@ export default function TabLayout() {
             const isFocused = props.focused ?? props["aria-selected"];
             return (
               <Pressable {...props} onPress={onPress} android_ripple={{ color: "rgba(255,255,255,0.1)", borderless: true }} className="flex-1 justify-center items-center -top-10">
-                <View className={`justify-center items-center w-[70px] h-[70px] rounded-full border-2 shadow-lg shadow-black/30 ${isFocused ? "bg-white border-black" : "bg-theme-black border-white"}`}>
-                  <SymbolView name={{ ios: "house", android: "home" }} tintColor={isFocused ? "black" : "#a0a0a0"} size={35} />
+                <View className={`flex justify-center items-center w-[70px] h-[70px] rounded-full border-2 shadow-lg shadow-black/30 ${isFocused ? "bg-white border-black" : "bg-theme-black border-white"}`}>
+                  <MaterialDesignIcons name="home" size={35} color={isFocused ? "black" : "#a0a0a0"} />
                 </View>
               </Pressable>
             );
