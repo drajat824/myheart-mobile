@@ -1,12 +1,13 @@
+// login.tsx
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { ActivityIndicator, Text, View } from "react-native";
+import { Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
-import { Button, Cards, CustomTextInput, Modal, WrapperAuth } from "../../component"; // Import Cards & Modal
-import { useModal } from "../../context"; // Import context modal
+import { Button, Cards, CustomTextInput, Loading, Modal, WrapperAuth } from "../../component"; // <-- Tambahkan Loading di import component
+import { useModal } from "../../context";
 import { apiService } from "../../utils/apiService";
 
 export default function Login() {
@@ -51,11 +52,17 @@ export default function Login() {
         console.warn("Gagal mendapatkan push token:", tokenError);
       }
 
-      const response = (await apiService.post("/auth/login", {
+      // Membuat Promise timeout 10 detik
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 10000));
+
+      // Membungkus apiService.post dengan Promise.race untuk menerapkan timeout 10 detik
+      const loginPromise = apiService.post("/auth/login", {
         email,
         password,
         expo_push_token: pushToken,
-      })) as {
+      });
+
+      const response = (await Promise.race([loginPromise, timeoutPromise])) as {
         token?: string;
         user?: Record<string, any>;
       };
@@ -63,11 +70,15 @@ export default function Login() {
       if (response?.token) {
         await AsyncStorage.setItem("userToken", response.token);
         await AsyncStorage.setItem("userData", JSON.stringify(response.user ?? {}));
-        router.replace("/dashboard");
+        router.replace("/(tabs)/dashboard"); // Mengarah ke dashboard setelah sukses login
       }
     } catch (error: any) {
       console.error("Login failed:", error);
-      showAlert("Gagal Masuk", "Email atau kata sandi yang Anda masukkan salah.");
+      if (error.message === "Request timeout") {
+        showAlert("Waktu Habis", "Koneksi ke server terlalu lama. Silakan coba lagi.");
+      } else {
+        showAlert("Gagal Masuk", "Email atau kata sandi yang Anda masukkan salah.");
+      }
     } finally {
       setIsLoading(false);
     }
@@ -75,6 +86,9 @@ export default function Login() {
 
   return (
     <WrapperAuth>
+      {/* Komponen Loading dari component */}
+      <Loading visible={isLoading} />
+
       <View className="flex-1 justify-between">
         <View className="flex-1 items-center justify-center">
           <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
@@ -95,7 +109,7 @@ export default function Login() {
 
         <View className="flex-none gap-3">
           <Button onPress={handleLogin} mode="contained" buttonColor="#038175" disabled={isLoading}>
-            {isLoading ? <ActivityIndicator color="#ffffff" /> : "MASUK"}
+            MASUK
           </Button>
         </View>
       </View>

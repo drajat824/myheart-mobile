@@ -1,5 +1,6 @@
-import { useCallback, useEffect, useState } from "react";
-import { ActivityIndicator, Alert, RefreshControl, ScrollView, Text, View } from "react-native";
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { useCallback, useEffect, useRef, useState } from "react";
+import { ActivityIndicator, Alert, Animated, Easing, InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Button, Cards, DatePicker, Header, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
@@ -41,9 +42,6 @@ const parseToDate = (dateVal: string | number | undefined): Date => {
 
   if (typeof dateVal === "string") {
     let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
-
-    // PENTING: Tambahkan "Z" karena string yang datang dari database adalah murni waktu UTC.
-    // Dengan menambah Z, JavaScript akan otomatis melakukan +7 jam (jika user di WIB) saat menampilkannya di UI.
     if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
       formattedStr += "Z";
     }
@@ -84,7 +82,6 @@ const formatMealRelationLabel = (mealRelation?: string): string => {
     after_meal: "Setelah Makan",
     any_time: "Kapan Saja",
   };
-
   return mealRelation ? (labels[mealRelation] ?? mealRelation) : "";
 };
 
@@ -97,14 +94,37 @@ export default function Medicine() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
-  // Fetch data menggunakan parameter langsung dari state
+  // Animasi rotasi
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (refreshing) {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    } else {
+      rotateAnim.stopAnimation();
+      rotateAnim.setValue(0);
+    }
+  }, [refreshing, rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   const fetchSchedules = useCallback(
     async (isPullRefresh: boolean = false) => {
       try {
         if (isPullRefresh) {
           setRefreshing(true);
         } else {
-          setSchedules([]); // Kosongkan data lama agar tidak tampil saat sedang ganti tanggal/loading
+          setSchedules([]);
           setIsLoading(true);
         }
 
@@ -136,7 +156,6 @@ export default function Medicine() {
 
   const handleUpdateStatus = async (id: number, currentStatus: "taken" | "missed" | "pending") => {
     const newStatus = currentStatus === "taken" ? "missed" : "taken";
-
     try {
       setUpdatingId(id);
       await apiService.put(`/medication-schedules/${id}`, { status: newStatus });
@@ -149,7 +168,6 @@ export default function Medicine() {
     }
   };
 
-  // Cukup update state saja. Efek pemanggilan API dihandle oleh useEffect
   const handleDateChange = useCallback((date: Date) => {
     setSelectedDate(date);
     setSelectedRange(null);
@@ -163,9 +181,10 @@ export default function Medicine() {
     await fetchSchedules(true);
   }, [fetchSchedules]);
 
-  // Otomatis terpicu (trigger) sekali di awal, dan setiap kali selectedDate atau selectedRange berubah
   useEffect(() => {
-    fetchSchedules(false);
+    InteractionManager.runAfterInteractions(() => {
+      fetchSchedules(false);
+    });
   }, [fetchSchedules]);
 
   return (
@@ -177,9 +196,18 @@ export default function Medicine() {
         </Header>
 
         <View className="mt-4 flex flex-1 flex-col gap-4">
-          <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={onRefresh} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
+              <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                <MaterialDesignIcons name="refresh" size={36} color={isLoading || refreshing ? "#A0C4FF" : "#017BFE"} />
+              </Animated.View>
+            </TouchableOpacity>
+            <View className="flex-1">
+              <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+            </View>
+          </View>
 
-          <ScrollView className="flex flex-1 flex-col gap-3 pb-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
+          <ScrollView className="flex flex-1 flex-col gap-3 pb-3">
             {isLoading && schedules.length === 0 ? (
               <Cards className="items-center justify-center py-10">
                 <ActivityIndicator size="large" color="#DB3546" />
@@ -201,7 +229,6 @@ export default function Medicine() {
 
                 const isTextColorWhite = isTaken || isMissed;
                 const textColorClass = isTextColorWhite ? "text-white" : "text-black";
-
                 const medicationName = item.brand_name ? `${item.brand_name} (${item.generic_name})` : item.generic_name;
                 const dosageText = `${item.dosage_form || ""} ${item.strength || ""}`.trim();
 
@@ -226,7 +253,6 @@ export default function Medicine() {
                           <View className="h-2 w-2 rounded-full bg-black" />
                           <Text className="text-xl font-bold text-black">{medicationName || "Obat Tidak Diketahui"}</Text>
                         </View>
-
                         <View className="ml-5 flex-col">
                           {dosageText ? <Text className="text-sm text-gray-700">Dosis: {dosageText}</Text> : null}
                           {item.route ? <Text className="text-sm text-gray-700">Rute: {item.route}</Text> : null}
@@ -237,7 +263,6 @@ export default function Medicine() {
                     {!isPending && (
                       <View className="flex flex-row items-center justify-between pt-5">
                         <Text className={`text-normal font-semibold ${textColorClass}`}>UBAH STATUS</Text>
-
                         <Button style={{ borderWidth: 1.5 }} buttonColor={isTaken ? "#DB3546" : "#38C172"} borderColor="#ffffff" disabled={updatingId === item.id} onPress={() => handleUpdateStatus(item.id, item.status)}>
                           {updatingId === item.id ? <ActivityIndicator size="small" color="#ffffff" /> : <Text className="font-bold text-white">{isTaken ? "BELUM" : "SUDAH"}</Text>}
                         </Button>

@@ -1,7 +1,8 @@
 import { HeartIssueRecord } from "@/context/hr";
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text, View } from "react-native";
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Easing, InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
@@ -23,12 +24,10 @@ const parseToDate = (dateVal: string | number | undefined): Date => {
   if (typeof dateVal === "number") return new Date(dateVal);
 
   if (typeof dateVal === "string") {
-    // Ubah spasi dari MySQL menjadi "T" (misal: "2026-09-22 22:18:00" -> "2026-09-22T22:18:00")
     let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
 
-    // Jika belum ada penanda UTC (Z) atau Offset (+/-), tambahkan "Z"
     if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
-      formattedStr += "Z"; // Menginformasikan ke JS bahwa ini adalah waktu UTC
+      formattedStr += "Z";
     }
 
     return new Date(formattedStr);
@@ -59,11 +58,9 @@ const formatDisplayDate = (dateKey: string): string => {
 
 const isDateToday = (dateKey: string): boolean => {
   if (!dateKey) return false;
-  // Bandingkan kunci tanggal dengan tanggal hari ini dalam format Asia/Jakarta
   return dateKey === formatDateToParam(new Date());
 };
 
-// Helper untuk menyaring data cache berdasarkan parameter filter yang aktif
 const filterRecordsByParams = (records: HeartIssueRecord[], date: Date, range: { start: Date; end: Date } | null): HeartIssueRecord[] => {
   if (!Array.isArray(records)) return [];
 
@@ -103,6 +100,30 @@ export default function RecordsDisorder() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
+  // Animasi rotasi
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (refreshing) {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    } else {
+      rotateAnim.stopAnimation();
+      rotateAnim.setValue(0);
+    }
+  }, [refreshing, rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   const groupData = useCallback((data: HeartIssueRecord[]) => {
     if (!Array.isArray(data)) return {};
     return data.reduce(
@@ -139,13 +160,9 @@ export default function RecordsDisorder() {
           const endStr = formatDateToParam(rangeFilter.end);
           endpoint += `&start_time=${startStr}&end_time=${endStr}`;
         } else {
-          // WIB Hari H (00:00:00 - 23:59:59) sama dengan UTC (H-1 17:00:00 - H 16:59:59)
           const selectedStr = formatDateToParam(dateFilter);
-
           const startWIB = new Date(`${selectedStr}T00:00:00+07:00`);
           const endWIB = new Date(`${selectedStr}T23:59:59+07:00`);
-
-          // Format ke UTC ISO string untuk query
           const startUTC = startWIB.toISOString();
           const endUTC = endWIB.toISOString();
 
@@ -154,13 +171,9 @@ export default function RecordsDisorder() {
 
         const data = await apiService.get<HeartIssueRecord[]>(endpoint);
         setGroupedByDay(groupData(data));
-
-        // Simpan data terbaru ke cache
         await AsyncStorage.setItem(CACHE_KEY_ISSUES, JSON.stringify(data));
       } catch (error) {
         console.error("Gagal menarik riwayat gangguan, mencoba memuat dari cache:", error);
-
-        // Fallback: Tampilkan data dari AsyncStorage jika server error/offline
         try {
           const cached = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
           if (cached) {
@@ -206,7 +219,6 @@ export default function RecordsDisorder() {
     await fetchRecords({ isPullRefresh: true });
   }, [fetchRecords]);
 
-  // Initial load saat komponen di-mount
   useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
       const loadInitialData = async () => {
@@ -215,7 +227,6 @@ export default function RecordsDisorder() {
         setSelectedRange(null);
         setIsLoading(true);
 
-        // Muat cache awal (difilter khusus tanggal hari ini agar tidak flicker jika cache berisi range sebelumnya)
         try {
           const cached = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
           if (cached) {
@@ -227,7 +238,6 @@ export default function RecordsDisorder() {
           console.error("Gagal membaca cache awal:", e);
         }
 
-        // Ambil data terbaru dari server
         await fetchRecords({ date: today, range: null, isPullRefresh: false });
       };
 
@@ -235,7 +245,6 @@ export default function RecordsDisorder() {
     });
   }, []);
 
-  // Optimasi Memoization untuk pengurutan tanggal & waktu kejadian
   const sortedGroupedEntries = useMemo(() => {
     return Object.entries(groupedByDay)
       .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
@@ -251,11 +260,18 @@ export default function RecordsDisorder() {
         <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT GANGGUAN" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
-          <View className="flex flex-1">
-            <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={onRefresh} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
+              <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                <MaterialDesignIcons name="refresh" size={36} color={isLoading || refreshing ? "#A0C4FF" : "#017BFE"} />
+              </Animated.View>
+            </TouchableOpacity>
+            <View className="flex-1">
+              <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+            </View>
           </View>
 
-          <ScrollView className="flex flex-1 flex-col gap-2 pb-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
+          <ScrollView className="flex flex-1 flex-col gap-2 pb-3">
             {isLoading && sortedGroupedEntries.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
@@ -267,7 +283,6 @@ export default function RecordsDisorder() {
               </Cards>
             ) : (
               sortedGroupedEntries.map(({ date, data }) => {
-                const isToday = isDateToday(date);
                 return (
                   <Cards key={date} className="flex flex-col gap-2 mb-3">
                     <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>

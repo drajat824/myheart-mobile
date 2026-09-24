@@ -1,6 +1,7 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
-import { useCallback, useEffect, useMemo, useState } from "react";
-import { ActivityIndicator, InteractionManager, RefreshControl, ScrollView, Text, View } from "react-native";
+import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { useCallback, useEffect, useMemo, useRef, useState } from "react";
+import { ActivityIndicator, Animated, Easing, InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
@@ -16,7 +17,6 @@ export type AggregateRecord = {
   end_time?: string | number;
 };
 
-// 1. Helper timezone offset dinamis
 const getUserTimezoneOffset = (): string => {
   const offsetMinutes = -new Date().getTimezoneOffset();
   const sign = offsetMinutes >= 0 ? "+" : "-";
@@ -25,7 +25,6 @@ const getUserTimezoneOffset = (): string => {
   return `${sign}${hours}:${minutes}`;
 };
 
-// 2. Format tanggal lokal menjadi YYYY-MM-DD tanpa hardcode timezone
 const formatDateToParam = (date: Date): string => {
   if (isNaN(date.getTime())) return "";
   const year = date.getFullYear();
@@ -104,6 +103,30 @@ export default function RecordsHRRealtime() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
+  // Animasi rotasi
+  const rotateAnim = useRef(new Animated.Value(0)).current;
+
+  useEffect(() => {
+    if (refreshing) {
+      Animated.loop(
+        Animated.timing(rotateAnim, {
+          toValue: 1,
+          duration: 1000,
+          easing: Easing.linear,
+          useNativeDriver: true,
+        }),
+      ).start();
+    } else {
+      rotateAnim.stopAnimation();
+      rotateAnim.setValue(0);
+    }
+  }, [refreshing, rotateAnim]);
+
+  const spin = rotateAnim.interpolate({
+    inputRange: [0, 1],
+    outputRange: ["0deg", "360deg"],
+  });
+
   const groupData = useCallback((data: AggregateRecord[]) => {
     if (!Array.isArray(data)) return {};
 
@@ -151,13 +174,11 @@ export default function RecordsHRRealtime() {
         const newData = await apiService.get<AggregateRecord[]>(endpoint);
         setGroupedByDay(groupData(newData));
 
-        // 💡 MERGE CACHE: Gabungkan data baru dengan data yang sudah terimpan di AsyncStorage
         try {
           const cached = await AsyncStorage.getItem(CACHE_KEY);
           let existingCache: AggregateRecord[] = cached ? JSON.parse(cached) : [];
-
-          // Gunakan Map berdasarkan ID / timestamp agar tidak ada data duplikat
           const combinedMap = new Map<string, AggregateRecord>();
+
           [...existingCache, ...newData].forEach((item) => {
             const key = `${item.id || item.start_time || item.startTime}`;
             combinedMap.set(key, item);
@@ -261,11 +282,18 @@ export default function RecordsHRRealtime() {
         <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT REALTIME HR" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
-          <View className="flex flex-1">
-            <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+          <View className="flex-row items-center gap-2">
+            <TouchableOpacity onPress={onRefresh} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
+              <Animated.View style={{ transform: [{ rotate: spin }] }}>
+                <MaterialDesignIcons name="refresh" size={36} color={isLoading || refreshing ? "#A0C4FF" : "#017BFE"} />
+              </Animated.View>
+            </TouchableOpacity>
+            <View className="flex-1">
+              <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={handleDateChange} onRangeChange={handleRangeChange} />
+            </View>
           </View>
 
-          <ScrollView className="flex flex-1 flex-col gap-2 pb-3" refreshControl={<RefreshControl refreshing={refreshing} onRefresh={onRefresh} colors={["#DB3546"]} tintColor="#DB3546" />}>
+          <ScrollView className="flex flex-1 flex-col gap-2 pb-3">
             {isLoading && sortedGroupedEntries.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />

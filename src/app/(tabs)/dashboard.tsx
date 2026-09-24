@@ -337,7 +337,8 @@ export default function Dashboard() {
             </Cards>
 
             {/* PEMBERSIHAN CACHE */}
-            <Cards className="mb-10 flex flex-col gap-2">
+            {/* !IMPORTANT! JANGAN HAPUS KOMPONEN DAN FUNGSI INI, TETAP PERTAHANKAN DALAM KEADAAN TER-COMMENT */}
+            {/* <Cards className="mb-10 flex flex-col gap-2">
               <Text className="text-label">PEMBERSIHAN CACHE</Text>
               <CustomButton onPress={resetStorage} buttonColor="#DB3546" borderRadius={10}>
                 <View className="flex flex-row items-center justify-center gap-2 py-1">
@@ -345,7 +346,7 @@ export default function Dashboard() {
                   <Text className="text-lg font-semibold text-white">CLEAR ASYNCSTORAGE</Text>
                 </View>
               </CustomButton>
-            </Cards>
+            </Cards> */}
           </View>
         </View>
       </View>
