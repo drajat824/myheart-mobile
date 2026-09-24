@@ -48,4 +48,28 @@ export const apiService = {
       throw error;
     }
   },
+
+  async put<T>(endpoint: string, body: Record<string, any>): Promise<T> {
+    try {
+      const response = await fetch(`${BASE_URL}${endpoint}`, {
+        method: "PUT",
+        headers: {
+          "Content-Type": "application/json",
+          Accept: "application/json",
+        },
+        body: JSON.stringify(body),
+      });
+
+      const responseData = await response.json();
+
+      if (!response.ok) {
+        throw new Error(responseData.message || `HTTP error! status: ${response.status}`);
+      }
+
+      return responseData as T;
+    } catch (error) {
+      console.error(`[PUT ${endpoint}] Error:`, error);
+      throw error;
+    }
+  },
 };

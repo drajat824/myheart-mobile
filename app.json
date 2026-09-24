@@ -38,7 +38,8 @@
           }
         }
       ],
-      "@react-native-async-storage/expo-with-async-storage"
+      "@react-native-async-storage/expo-with-async-storage",
+      "expo-notifications"
     ],
     "experiments": {
       "typedRoutes": true,
@@ -52,6 +53,7 @@
     },
     "ios": {
       "bundleIdentifier": "com.darojat.digitalhealth"
-    }
+    },
+    "icon": "./assets/images/Icon.png"
   }
 }
