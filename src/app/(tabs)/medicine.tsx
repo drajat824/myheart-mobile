@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useFocusEffect } from "expo-router"; // Tambahkan import ini
 import { useCallback, useEffect, useRef, useState } from "react";
@@ -129,8 +130,16 @@ export default function Medicine() {
           setIsLoading(true);
         }
 
+        const token = await AsyncStorage.getItem("userToken");
+        const userDataStr = await AsyncStorage.getItem("userData");
+
+        if (!token || !userDataStr) return;
+
+        const userData = JSON.parse(userDataStr);
+        const userId = userData.id;
+
         const userTz = getUserTimezoneOffset();
-        let endpoint = `/medication-schedules?user_id=1&timezone=${encodeURIComponent(userTz)}`;
+        let endpoint = `/medication-schedules?user_id=${userId}&timezone=${encodeURIComponent(userTz)}`;
 
         if (selectedRange) {
           const startStr = formatDateToParam(selectedRange.start);

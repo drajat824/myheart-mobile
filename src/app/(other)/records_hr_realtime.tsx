@@ -159,8 +159,16 @@ export default function RecordsHRRealtime() {
           setIsLoading(true);
         }
 
+        const token = await AsyncStorage.getItem("userToken");
+        const userDataStr = await AsyncStorage.getItem("userData");
+
+        if (!token || !userDataStr) return;
+
+        const userData = JSON.parse(userDataStr);
+        const userId = userData.id;
+
         const userTz = getUserTimezoneOffset();
-        let endpoint = `/hr?user_id=1&timezone=${encodeURIComponent(userTz)}`;
+        let endpoint = `/hr?user_id=${userId}&timezone=${encodeURIComponent(userTz)}`;
 
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);

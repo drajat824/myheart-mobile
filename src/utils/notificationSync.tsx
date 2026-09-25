@@ -1,3 +1,4 @@
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import * as Notifications from "expo-notifications";
 import * as TaskManager from "expo-task-manager";
 import { apiService } from "./apiService";
@@ -42,6 +43,14 @@ export const syncAlarmsForeground = async () => {
   try {
     const userTz = getUserTimezoneOffset();
 
+    const token = await AsyncStorage.getItem("userToken");
+    const userDataStr = await AsyncStorage.getItem("userData");
+
+    if (!token || !userDataStr) return;
+
+    const userData = JSON.parse(userDataStr);
+    const userId = userData.id;
+
     // Ambil data dari hari ini sampai 7 hari ke depan untuk didaftarkan ke OS HP
     const today = new Date();
     const nextWeek = new Date();
@@ -50,7 +59,7 @@ export const syncAlarmsForeground = async () => {
     const startStr = formatDateToParam(today);
     const endStr = formatDateToParam(nextWeek);
 
-    const schedules = (await apiService.get(`/medication-schedules?user_id=1&timezone=${encodeURIComponent(userTz)}&start_date=${startStr}&end_date=${endStr}&status=pending`)) as MedicationSchedule[];
+    const schedules = (await apiService.get(`/medication-schedules?user_id=${userId}&timezone=${encodeURIComponent(userTz)}&start_date=${startStr}&end_date=${endStr}&status=pending`)) as MedicationSchedule[];
 
     // Bersihkan alarm lokal lama agar tidak numpuk/duplikat
     await Notifications.cancelAllScheduledNotificationsAsync();

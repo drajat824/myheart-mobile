@@ -4,7 +4,7 @@ import MaterialDesignIcons from "@react-native-vector-icons/material-design-icon
 import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useState } from "react";
-import { Text, View } from "react-native";
+import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Button, Cards, CustomTextInput, Loading, Modal, WrapperAuth } from "../../component"; // <-- Tambahkan Loading di import component
 import { useModal } from "../../context";
@@ -89,30 +89,33 @@ export default function Login() {
       {/* Komponen Loading dari component */}
       <Loading visible={isLoading} />
 
-      <View className="flex-1 justify-between">
-        <View className="flex-1 items-center justify-center">
-          <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
-          <Text className="mt-2 text-2xl font-bold text-title">MASUK</Text>
-        </View>
+      {/* Tambahkan KeyboardAvoidingView & ScrollView di sini */}
+      <KeyboardAvoidingView behavior={Platform.OS === "ios" ? "padding" : "height"} style={{ flex: 1 }}>
+        <ScrollView contentContainerStyle={{ flexGrow: 1 }} showsVerticalScrollIndicator={false} keyboardShouldPersistTaps="handled">
+          <View className="flex-1 justify-between pb-6">
+            <View className="flex-1 items-center justify-center pt-10">
+              <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
+              <Text className="mt-2 text-2xl font-bold text-title">MASUK</Text>
+            </View>
+            <View className="my-6 flex-1 justify-center gap-4">
+              <View className="gap-2">
+                <Text className="text-label">EMAIL</Text>
+                <CustomTextInput placeholder="Masukan email.." value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+              </View>
 
-        <View className="my-6 flex-1 justify-start gap-4">
-          <View className="gap-2">
-            <Text className="text-label">EMAIL</Text>
-            <CustomTextInput placeholder="Masukan email.." value={email} onChangeText={setEmail} keyboardType="email-address" autoCapitalize="none" />
+              <View className="gap-2">
+                <Text className="text-label">KATA SANDI</Text>
+                <CustomTextInput placeholder="Masukan kata sandi.." value={password} onChangeText={setPassword} secureTextEntry={!showPassword} right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />} />
+              </View>
+            </View>
+            <View className="flex-none gap-3">
+              <Button onPress={handleLogin} mode="contained" buttonColor="#038175" disabled={isLoading}>
+                MASUK
+              </Button>
+            </View>
           </View>
-
-          <View className="gap-2">
-            <Text className="text-label">KATA SANDI</Text>
-            <CustomTextInput placeholder="Masukan kata sandi.." value={password} onChangeText={setPassword} secureTextEntry={!showPassword} right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />} />
-          </View>
-        </View>
-
-        <View className="flex-none gap-3">
-          <Button onPress={handleLogin} mode="contained" buttonColor="#038175" disabled={isLoading}>
-            MASUK
-          </Button>
-        </View>
-      </View>
+        </ScrollView>
+      </KeyboardAvoidingView>
 
       {/* MODAL NOTIFIKASI ERROR LOGIN */}
       <Modal id="login-alert">
