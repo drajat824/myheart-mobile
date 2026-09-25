@@ -1,8 +1,10 @@
+// dashboard.tsx
 import { useBle, useHR, useModal } from "@/context";
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { Asset } from "expo-asset";
 import * as FileSystem from "expo-file-system/legacy";
+import * as Notifications from "expo-notifications"; // Impor Notifications
 import { useRouter } from "expo-router";
 import React, { useEffect, useMemo, useRef, useState } from "react";
 import { Pressable, Text, View } from "react-native";
@@ -234,11 +236,23 @@ export default function Dashboard() {
   const confirmLogout = async () => {
     try {
       closeModal("logout-modal");
-      // Hapus token dan data user dari storage
-      await AsyncStorage.removeItem("userToken");
-      await AsyncStorage.removeItem("userData");
 
-      // Arahkan kembali ke halaman login dan hapus history
+      // 1. Batalkan semua notifikasi lokal yang sudah dijadwalkan
+      await Notifications.cancelAllScheduledNotificationsAsync();
+
+      // 2. Bersihkan badge (opsional, jika badge digunakan)
+      await Notifications.setBadgeCountAsync(0);
+
+      // 3. Bersihkan seluruh AsyncStorage
+      // Menggunakan clear() memastikan tidak ada key sisa yang tertinggal,
+      // tetapi jika ada data konfigurasi aplikasi yang harus dipertahankan,
+      // sebaiknya gunakan removeItem untuk setiap key spesifik.
+      await AsyncStorage.clear();
+      // await AsyncStorage.removeItem("userToken");
+      // await AsyncStorage.removeItem("userData");
+      // ... hapus key lainnya jika tidak menggunakan clear()
+
+      // 4. Arahkan kembali ke halaman login dan hapus history
       router.replace("/login");
     } catch (error) {
       console.error("Gagal melakukan logout:", error);
