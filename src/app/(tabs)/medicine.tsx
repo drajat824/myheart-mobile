@@ -1,4 +1,5 @@
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import { useFocusEffect } from "expo-router"; // Tambahkan import ini
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Alert, Animated, Easing, InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
 import { Button, Cards, DatePicker, Header, WrapperMain } from "../../component";
@@ -141,7 +142,16 @@ export default function Medicine() {
         }
 
         const data = await apiService.get<MedicationSchedule[]>(endpoint);
-        setSchedules(Array.isArray(data) ? data : []);
+
+        // Memastikan data array, lalu diurutkan berdasarkan schedule_date (terbaru di atas)
+        if (Array.isArray(data)) {
+          const sortedData = [...data].sort((a, b) => {
+            return parseToDate(b.schedule_date).getTime() - parseToDate(a.schedule_date).getTime();
+          });
+          setSchedules(sortedData);
+        } else {
+          setSchedules([]);
+        }
       } catch (error) {
         console.error("Gagal mengambil jadwal obat:", error);
         Alert.alert("Error", "Gagal memuat daftar jadwal obat.");
@@ -181,11 +191,14 @@ export default function Medicine() {
     await fetchSchedules(true);
   }, [fetchSchedules]);
 
-  useEffect(() => {
-    InteractionManager.runAfterInteractions(() => {
-      fetchSchedules(false);
-    });
-  }, [fetchSchedules]);
+  // Menggunakan useFocusEffect agar data diperbarui setiap kali masuk ke halaman
+  useFocusEffect(
+    useCallback(() => {
+      InteractionManager.runAfterInteractions(() => {
+        fetchSchedules(false);
+      });
+    }, [fetchSchedules]),
+  );
 
   return (
     <WrapperMain>

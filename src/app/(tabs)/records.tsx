@@ -9,6 +9,17 @@ import { Cards, Header, WrapperMain } from "../../component";
 const CACHE_KEY = "@myheartz_aggregation_cache";
 const CACHE_KEY_REALTIME = "@myheartz_realtime_cache";
 const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
+const CACHE_KEY_PERIODIC = "@myheartz_periodic_cache";
+
+type PeriodicRecord = {
+  id?: number;
+  user_id?: number;
+  weight?: number;
+  height?: number;
+  cholesterol?: number;
+  blood_sugar?: number;
+  check_date?: string | number;
+};
 
 type AggregateRecord = {
   id?: number;
@@ -53,6 +64,9 @@ export default function Records() {
 
   const [latestIssueRecords, setLatestIssueRecords] = useState<HeartIssueRecord[]>([]);
   const [latestIssueDateText, setLatestIssueDateText] = useState<string>("");
+
+  const [latestPeriodicRecord, setLatestPeriodicRecord] = useState<PeriodicRecord | null>(null);
+  const [latestPeriodicDateText, setLatestPeriodicDateText] = useState<string>("");
 
   // Mengambil cuplikan data terbaru dari cache
   const loadCachedHR = useCallback(async () => {
@@ -125,6 +139,28 @@ export default function Records() {
           }
         }
       }
+
+      // 3. Load Periodic Cache
+      const cachedPeriodic = await AsyncStorage.getItem(CACHE_KEY_PERIODIC);
+      if (cachedPeriodic) {
+        const parsedPeriodic: PeriodicRecord[] = JSON.parse(cachedPeriodic);
+        if (Array.isArray(parsedPeriodic) && parsedPeriodic.length > 0) {
+          const sortedPeriodic = [...parsedPeriodic].sort((a, b) => parseToDate(b.check_date).getTime() - parseToDate(a.check_date).getTime());
+          setLatestPeriodicRecord(sortedPeriodic[0]);
+
+          const topPeriodicDate = parseToDate(sortedPeriodic[0].check_date);
+          if (!isNaN(topPeriodicDate.getTime())) {
+            setLatestPeriodicDateText(
+              topPeriodicDate.toLocaleDateString("id-ID", {
+                weekday: "long",
+                day: "numeric",
+                month: "long",
+                year: "numeric",
+              }),
+            );
+          }
+        }
+      }
     } catch (error) {
       console.error("Gagal membaca cache di Records:", error);
     }
@@ -163,40 +199,46 @@ export default function Records() {
           {!isDevice && (
             <Cards className="flex flex-col gap-2">
               <Text className="text-normal font-bold">PEMERIKSAAN BERKALA</Text>
-              <Text className="text-normal text-gray-500">Rabu, 25 Agustus 2026</Text>
+              <Text className="text-normal text-gray-500">{latestPeriodicDateText || "Belum ada riwayat"}</Text>
 
-              <View className="flex-col gap-3 mt-2">
-                <View className="gap-2">
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Berat/Tinggi Badan</Text>
+              {latestPeriodicRecord ? (
+                <View className="flex-col gap-3 mt-2">
+                  <View className="gap-2">
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2 rounded-full bg-black" />
+                      <Text className="text-xl">Berat/Tinggi Badan</Text>
+                    </View>
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2" />
+                      <Text className="text-xl font-semibold">
+                        {latestPeriodicRecord.weight ?? "--"} kg/{latestPeriodicRecord.height ?? "--"} cm
+                      </Text>
+                    </View>
                   </View>
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2" />
-                    <Text className="text-xl font-semibold">89 kg/170 cm</Text>
+                  <View className="gap-2">
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2 rounded-full bg-black" />
+                      <Text className="text-xl">Kolestrol</Text>
+                    </View>
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2" />
+                      <Text className="text-xl font-semibold">{latestPeriodicRecord.cholesterol ?? "--"} mg/dL</Text>
+                    </View>
+                  </View>
+                  <View className="gap-2">
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2 rounded-full bg-black" />
+                      <Text className="text-xl">Gula Darah</Text>
+                    </View>
+                    <View className="flex-row items-center gap-4">
+                      <View className="w-2 h-2" />
+                      <Text className="text-xl font-semibold">{latestPeriodicRecord.blood_sugar ?? "--"} mg/dL</Text>
+                    </View>
                   </View>
                 </View>
-                <View className="gap-2">
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Kolestrol</Text>
-                  </View>
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2" />
-                    <Text className="text-xl font-semibold">200 mg/dL</Text>
-                  </View>
-                </View>
-                <View className="gap-2">
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2 rounded-full bg-black" />
-                    <Text className="text-xl">Gula Darah</Text>
-                  </View>
-                  <View className="flex-row items-center gap-4">
-                    <View className="w-2 h-2" />
-                    <Text className="text-xl font-semibold">100 mg/dL</Text>
-                  </View>
-                </View>
-              </View>
+              ) : (
+                <Text className="text-gray-400 italic mt-2">Belum ada data pemeriksaan tersimpan</Text>
+              )}
 
               <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_periodic")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
