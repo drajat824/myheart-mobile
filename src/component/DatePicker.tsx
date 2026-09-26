@@ -131,12 +131,11 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
   };
 
   return (
-    <View className="flex flex-col gap-2">
-      <View className="-mb-4 flex-1 flex flex-row items-center justify-end gap-2">
+    <View className="flex flex-col gap-1">
+      <View className="flex flex-row items-center justify-end gap-2">
         <Text className="text-label">Range Picker</Text>
         <Switch disabled={disable} className={`active:opacity-50 ${disable ? "opacity-50" : ""}`} value={isRangePicker} onValueChange={onToggleSwitch} trackColor={{ true: "#017BFE", false: "#767577" }} thumbColor={isRangePicker ? "#ffffff" : "#f4f3f4"} />
       </View>
-
       {!isRangePicker && (
         <Pressable disabled={disable} className={`active:opacity-50 ${disable ? "opacity-50" : ""}`} onPress={() => openModal("single-date-picker")}>
           <Cards className="mt-4 flex flex-row items-center py-[15] gap-4">
@@ -145,7 +144,6 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
           </Cards>
         </Pressable>
       )}
-
       {!!isRangePicker && (
         <View className="mt-6 flex flex-row items-center justify-between gap-2">
           <Pressable className={`active:opacity-50 ${disable ? "opacity-50" : ""} flex-1 active:opacity-50`} disabled={disable} onPress={() => openModal("range-start-picker")}>
@@ -165,15 +163,12 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
           </Pressable>
         </View>
       )}
-
       <Modal id="single-date-picker">
         <DateTimePicker value={date} onChange={handleSingleDateChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
-
       <Modal id="range-start-picker">
         <DateTimePicker value={rangeStartDate} maximumDate={rangeEndDate} onChange={handleRangeStartChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>
-
       <Modal id="range-end-picker">
         <DateTimePicker value={rangeEndDate} minimumDate={rangeStartDate} onChange={handleRangeEndChange} onDismiss={() => closeModal()} mode="date" />
       </Modal>

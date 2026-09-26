@@ -16,7 +16,7 @@ export default function Login() {
 
   const [email, setEmail] = useState("john@mail.com");
   const [password, setPassword] = useState("john123");
-  const [showPassword, setShowPassword] = useState(true);
+  const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
 
   // State khusus untuk isi Modal Error

@@ -17,6 +17,17 @@ export type AggregateRecord = {
   end_time?: string | number;
 };
 
+// Tambahkan interface untuk membaca struktur API yang baru
+interface PaginatedResponse {
+  data: AggregateRecord[];
+  pagination: {
+    totalItems: number;
+    totalPages: number;
+    currentPage: number;
+    limit: number;
+  };
+}
+
 const getUserTimezoneOffset = (): string => {
   const offsetMinutes = -new Date().getTimezoneOffset();
   const sign = offsetMinutes >= 0 ? "+" : "-";
@@ -96,9 +107,16 @@ const filterRecordsByParams = (records: AggregateRecord[], date: Date, range: { 
 };
 
 export default function RecordsHRRealtime() {
+  const [allRecords, setAllRecords] = useState<AggregateRecord[]>([]); // Menyimpan seluruh data gabungan
   const [groupedByDay, setGroupedByDay] = useState<Record<string, AggregateRecord[]>>({});
+
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
+
+  // State Paginasi
+  const [page, setPage] = useState(1);
+  const [hasMore, setHasMore] = useState(false);
+  const [isLoadingMore, setIsLoadingMore] = useState(false);
 
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
@@ -148,15 +166,18 @@ export default function RecordsHRRealtime() {
   }, []);
 
   const fetchRecords = useCallback(
-    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null; isPullRefresh?: boolean }) => {
+    async (filterParams?: { date?: Date; range?: { start: Date; end: Date } | null; isPullRefresh?: boolean; pageNum?: number }) => {
       const rangeFilter = filterParams?.range !== undefined ? filterParams.range : selectedRange;
       const dateFilter = filterParams?.date || selectedDate;
+      const targetPage = filterParams?.pageNum || 1;
 
       try {
         if (filterParams?.isPullRefresh) {
           setRefreshing(true);
-        } else {
+        } else if (targetPage === 1) {
           setIsLoading(true);
+        } else {
+          setIsLoadingMore(true);
         }
 
         const token = await AsyncStorage.getItem("userToken");
@@ -168,7 +189,8 @@ export default function RecordsHRRealtime() {
         const userId = userData.id;
 
         const userTz = getUserTimezoneOffset();
-        let endpoint = `/hr?user_id=${userId}&timezone=${encodeURIComponent(userTz)}`;
+        // Tambahkan parameter page & limit ke endpoint
+        let endpoint = `/hr?user_id=${userId}&timezone=${encodeURIComponent(userTz)}&page=${targetPage}&limit=30`;
 
         if (rangeFilter) {
           const startStr = formatDateToParam(rangeFilter.start);
@@ -179,43 +201,65 @@ export default function RecordsHRRealtime() {
           endpoint += `&date=${selectedStr}`;
         }
 
-        const newData = await apiService.get<AggregateRecord[]>(endpoint);
-        setGroupedByDay(groupData(newData));
+        // Ambil menggunakan Interface PaginatedResponse
+        const response = await apiService.get<PaginatedResponse>(endpoint);
+        const newData = response.data || [];
+        const pagination = response.pagination;
 
-        try {
-          const cached = await AsyncStorage.getItem(CACHE_KEY);
-          let existingCache: AggregateRecord[] = cached ? JSON.parse(cached) : [];
-          const combinedMap = new Map<string, AggregateRecord>();
+        // Update status paginasi
+        setHasMore(pagination.currentPage < pagination.totalPages);
+        setPage(pagination.currentPage);
 
-          [...existingCache, ...newData].forEach((item) => {
-            const key = `${item.id || item.start_time || item.startTime}`;
-            combinedMap.set(key, item);
-          });
+        // Gabungkan data baru dengan data lama (jika memuat halaman berikutnya)
+        setAllRecords((prev) => {
+          const merged = targetPage === 1 ? newData : [...prev, ...newData];
+          setGroupedByDay(groupData(merged));
+          return merged;
+        });
 
-          const mergedList = Array.from(combinedMap.values());
-          await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(mergedList));
-        } catch (e) {
-          console.error("Gagal memperbarui cache riwayat:", e);
+        // Simpan hanya data halaman pertama ke cache agar tidak terlalu besar
+        if (targetPage === 1) {
+          try {
+            const cached = await AsyncStorage.getItem(CACHE_KEY);
+            let existingCache: AggregateRecord[] = cached ? JSON.parse(cached) : [];
+            const combinedMap = new Map<string, AggregateRecord>();
+
+            [...existingCache, ...newData].forEach((item) => {
+              const key = `${item.id || item.start_time || item.startTime}`;
+              combinedMap.set(key, item);
+            });
+
+            const mergedList = Array.from(combinedMap.values());
+            await AsyncStorage.setItem(CACHE_KEY, JSON.stringify(mergedList));
+          } catch (e) {
+            console.error("Gagal memperbarui cache riwayat:", e);
+          }
         }
       } catch (error) {
         console.error("Gagal menarik riwayat HR, mencoba memuat dari cache:", error);
 
-        try {
-          const cached = await AsyncStorage.getItem(CACHE_KEY);
-          if (cached) {
-            const parsedCache: AggregateRecord[] = JSON.parse(cached);
-            const filteredCache = filterRecordsByParams(parsedCache, dateFilter, rangeFilter);
-            setGroupedByDay(groupData(filteredCache));
-          } else {
+        if (targetPage === 1) {
+          try {
+            const cached = await AsyncStorage.getItem(CACHE_KEY);
+            if (cached) {
+              const parsedCache: AggregateRecord[] = JSON.parse(cached);
+              const filteredCache = filterRecordsByParams(parsedCache, dateFilter, rangeFilter);
+              setAllRecords(filteredCache);
+              setGroupedByDay(groupData(filteredCache));
+            } else {
+              setAllRecords([]);
+              setGroupedByDay({});
+            }
+          } catch (e) {
+            console.error("Gagal membaca cache:", e);
+            setAllRecords([]);
             setGroupedByDay({});
           }
-        } catch (e) {
-          console.error("Gagal membaca cache:", e);
-          setGroupedByDay({});
         }
       } finally {
         setRefreshing(false);
         setIsLoading(false);
+        setIsLoadingMore(false);
       }
     },
     [selectedDate, selectedRange, groupData],
@@ -225,8 +269,11 @@ export default function RecordsHRRealtime() {
     (date: Date) => {
       setSelectedDate(date);
       setSelectedRange(null);
+      setAllRecords([]);
       setGroupedByDay({});
-      fetchRecords({ date, range: null, isPullRefresh: false });
+      setPage(1);
+      setHasMore(false);
+      fetchRecords({ date, range: null, isPullRefresh: false, pageNum: 1 });
     },
     [fetchRecords],
   );
@@ -235,15 +282,24 @@ export default function RecordsHRRealtime() {
     (startDate: Date, endDate: Date) => {
       const range = { start: startDate, end: endDate };
       setSelectedRange(range);
+      setAllRecords([]);
       setGroupedByDay({});
-      fetchRecords({ range, isPullRefresh: false });
+      setPage(1);
+      setHasMore(false);
+      fetchRecords({ range, isPullRefresh: false, pageNum: 1 });
     },
     [fetchRecords],
   );
 
   const onRefresh = useCallback(async () => {
-    await fetchRecords({ isPullRefresh: true });
+    await fetchRecords({ isPullRefresh: true, pageNum: 1 });
   }, [fetchRecords]);
+
+  const loadMore = useCallback(() => {
+    if (!isLoadingMore && hasMore) {
+      fetchRecords({ pageNum: page + 1 });
+    }
+  }, [isLoadingMore, hasMore, page, fetchRecords]);
 
   useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
@@ -258,13 +314,14 @@ export default function RecordsHRRealtime() {
           if (cached) {
             const parsedCache: AggregateRecord[] = JSON.parse(cached);
             const filteredCache = filterRecordsByParams(parsedCache, today, null);
+            setAllRecords(filteredCache);
             setGroupedByDay(groupData(filteredCache));
           }
         } catch (e) {
           console.error("Gagal membaca cache awal:", e);
         }
 
-        await fetchRecords({ date: today, range: null, isPullRefresh: false });
+        await fetchRecords({ date: today, range: null, isPullRefresh: false, pageNum: 1 });
       };
 
       loadInitialData();
@@ -273,12 +330,12 @@ export default function RecordsHRRealtime() {
 
   const sortedGroupedEntries = useMemo(() => {
     return Object.entries(groupedByDay)
-      .sort(([dateA], [dateB]) => dateA.localeCompare(dateB))
+      .sort(([dateA], [dateB]) => dateB.localeCompare(dateA)) // Sort Descending per tanggal
       .map(([date, data]) => {
         const sortedData = [...data].sort((a, b) => {
           const timeA = parseToDate(a.start_time || a.startTime).getTime();
           const timeB = parseToDate(b.start_time || b.startTime).getTime();
-          return timeA - timeB;
+          return timeB - timeA; // Sort Descending per waktu
         });
         return { date, data: sortedData };
       });
@@ -312,20 +369,15 @@ export default function RecordsHRRealtime() {
                 <Text className="text-gray-500 font-medium">Tidak ada data riwayat heart rate pada tanggal ini.</Text>
               </Cards>
             ) : (
-              sortedGroupedEntries.map(({ date, data }) => {
-                const isToday = isDateToday(date);
-                return (
-                  <Cards color={isToday ? "#FFFFFF" : "#FFDD78"} key={date} className="flex flex-col gap-2 mb-3">
-                    <Text className="text-normal font-bold">{formatDisplayDate(date)}.</Text>
+              <>
+                {sortedGroupedEntries.map(({ date, data }) => {
+                  const isToday = isDateToday(date);
+                  return (
+                    <Cards color={isToday ? "#FFFFFF" : "#FFDD78"} key={date} className="flex flex-col gap-2 mb-3">
+                      <Text className="text-normal font-bold">{formatDisplayDate(date)}.</Text>
 
-                    <View className="flex-col gap-3 mt-2">
-                      {[...data]
-                        .sort((a, b) => {
-                          const timeA = parseToDate(a.start_time || a.startTime).getTime();
-                          const timeB = parseToDate(b.start_time || b.startTime).getTime();
-                          return timeB - timeA;
-                        })
-                        .map((item, index) => {
+                      <View className="flex-col gap-3 mt-2">
+                        {data.map((item, index) => {
                           const rawStartTime = item.start_time || item.startTime;
                           const itemDate = parseToDate(rawStartTime);
                           const bpmValue = item.bpm ?? item.averageHR ?? 0;
@@ -347,10 +399,18 @@ export default function RecordsHRRealtime() {
                             </View>
                           );
                         })}
-                    </View>
-                  </Cards>
-                );
-              })
+                      </View>
+                    </Cards>
+                  );
+                })}
+
+                {/* Tombol Load More */}
+                {hasMore && (
+                  <TouchableOpacity onPress={loadMore} disabled={isLoadingMore} className="bg-white p-4 rounded-xl shadow-sm items-center justify-center mb-6 mt-2">
+                    {isLoadingMore ? <ActivityIndicator size="small" color="#017BFE" /> : <Text className="text-[#017BFE] font-bold text-lg">Muat Lebih Banyak</Text>}
+                  </TouchableOpacity>
+                )}
+              </>
             )}
           </ScrollView>
         </View>
