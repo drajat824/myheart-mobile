@@ -185,15 +185,17 @@ export default function Records() {
               <View className="flex-col gap-3 mt-2">
                 {latestDemographics.length > 0 ? (
                   latestDemographics.map((item, index) => (
-                    <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-2">
-                      <View className="flex-row justify-between">
-                        <Text>BB / TB:</Text>
+                    <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                      {/* Tanggal dipisahkan per record agar terlihat perbedaannya */}
+                      <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                      <View className="flex-row justify-between pl-2">
+                        <Text className="text-gray-600">BB / TB:</Text>
                         <Text className="font-semibold">
                           {item.weight} kg / {item.height} cm
                         </Text>
                       </View>
-                      <View className="flex-row justify-between">
-                        <Text>BMI / Gula Darah:</Text>
+                      <View className="flex-row justify-between pl-2">
+                        <Text className="text-gray-600">BMI / Gula Darah:</Text>
                         <Text className="font-semibold">
                           {item.bmi} / {item.blood_sugar} mg/dL
                         </Text>
