@@ -181,32 +181,29 @@ export default function Records() {
           {activeTab == "DEMOGRAPHIC" && (
             <Cards className="flex flex-col gap-2">
               <Text className="text-normal font-bold">DATA DEMOGRAFI TERAKHIR</Text>
-              <Text className="text-normal text-gray-500">{latestDemographicDateText || "Belum ada riwayat"}</Text>
+
+              {/* <Text className="text-normal text-gray-500">{latestDemographicDateText || "Belum ada riwayat"}</Text>
               <View className="flex-col gap-3 mt-2">
-                {latestDemographics.length > 0 ? (
-                  latestDemographics.map((item, index) => (
-                    <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
-                      {/* Tanggal dipisahkan per record agar terlihat perbedaannya */}
-                      <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
-                      <View className="flex-row justify-between pl-2">
-                        <Text className="text-gray-600">BB / TB:</Text>
-                        <Text className="font-semibold">
-                          {item.weight} kg / {item.height} cm
-                        </Text>
-                      </View>
-                      <View className="flex-row justify-between pl-2">
-                        <Text className="text-gray-600">BMI / Gula Darah:</Text>
-                        <Text className="font-semibold">
-                          {item.bmi} / {item.blood_sugar} mg/dL
-                        </Text>
-                      </View>
+                {latestDemographics.map((item, index) => (
+                  <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                    <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                    <View className="flex-row justify-between pl-2">
+                      <Text className="text-gray-600">BB / TB:</Text>
+                      <Text className="font-semibold">
+                        {item.weight} kg / {item.height} cm
+                      </Text>
                     </View>
-                  ))
-                ) : (
-                  <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
-                )}
-              </View>
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
+                    <View className="flex-row justify-between pl-2">
+                      <Text className="text-gray-600">BMI / Gula Darah:</Text>
+                      <Text className="font-semibold">
+                        {item.bmi} / {item.blood_sugar} mg/dL
+                      </Text>
+                    </View>
+                  </View>
+                ))}
+              </View> */}
+
+              <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
@@ -216,32 +213,29 @@ export default function Records() {
           {activeTab == "MEDICAL" && (
             <Cards className="flex flex-col gap-2">
               <Text className="text-normal font-bold">REKAM MEDIS TERAKHIR</Text>
-              <Text className="text-normal text-gray-500">{latestMedicalDateText || "Belum ada riwayat"}</Text>
-              <View className="flex-col gap-3 mt-2">
-                {latestMedicals.length > 0 ? (
-                  latestMedicals.map((item, index) => (
-                    <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
-                      {/* Tambahkan tanggal agar jelas pemisah antar rekam medis */}
-                      <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
-                      <View className="flex-row justify-between pl-2">
-                        <Text className="text-gray-600">Lab Result:</Text>
-                        <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
-                      </View>
-                      <View className="flex-row justify-between pl-2">
-                        <Text className="text-gray-600">Medical Images:</Text>
-                        <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
-                      </View>
-                      <View className="flex-row justify-between pl-2">
-                        <Text className="text-gray-600">Diagnosis:</Text>
-                        <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
-                      </View>
+
+              {/* <Text className="text-normal text-gray-500">{latestMedicalDateText || "Belum ada riwayat"}</Text> */}
+              {/* <View className="flex-col gap-3 mt-2">
+                {latestMedicals.map((item, index) => (
+                  <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                    <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                    <View className="flex-row justify-between pl-2">
+                      <Text className="text-gray-600">Lab Result:</Text>
+                      <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
                     </View>
-                  ))
-                ) : (
-                  <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
-                )}
-              </View>
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
+                    <View className="flex-row justify-between pl-2">
+                      <Text className="text-gray-600">Medical Images:</Text>
+                      <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
+                    </View>
+                    <View className="flex-row justify-between pl-2">
+                      <Text className="text-gray-600">Diagnosis:</Text>
+                      <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
+                    </View>
+                  </View>
+                ))}
+              </View> */}
+
+              <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
@@ -253,9 +247,9 @@ export default function Records() {
             <View className="flex flex-col gap-4">
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT GANGGUAN JANTUNG</Text>
-                <Text className="text-normal text-gray-500">{latestIssueDateText || "Belum ada riwayat"}</Text>
+                {/* <Text className="text-normal text-gray-500">{latestIssueDateText || "Belum ada riwayat"}</Text> */}
 
-                <View className="flex-col gap-3 mt-2">
+                {/* <View className="flex-col gap-3 mt-2">
                   {latestIssueRecords.length > 0 ? (
                     latestIssueRecords.map((item, index) => {
                       const itemDate = parseToDate(item.recorded_at);
@@ -278,9 +272,9 @@ export default function Records() {
                   ) : (
                     <Text className="text-gray-400 italic">Belum ada gangguan tersimpan</Text>
                   )}
-                </View>
+                </View> */}
 
-                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
+                <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
@@ -289,9 +283,9 @@ export default function Records() {
               {/* CARDS RIWAYAT HR AGREGASI */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT AGREGASI HR</Text>
-                <Text className="text-normal text-gray-500">{latestHRAggregationDateText || "Belum ada riwayat"}</Text>
+                {/* <Text className="text-normal text-gray-500">{latestHRAggregationDateText || "Belum ada riwayat"}</Text> */}
 
-                <View className="flex-col gap-3 mt-2">
+                {/* <View className="flex-col gap-3 mt-2">
                   {latestHRAggregation.length > 0 ? (
                     latestHRAggregation.map((item, index) => {
                       const rawTime = item.start_time || item.startTime;
@@ -317,9 +311,9 @@ export default function Records() {
                   ) : (
                     <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
                   )}
-                </View>
+                </View> */}
 
-                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
+                <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
@@ -328,7 +322,7 @@ export default function Records() {
               {/* CARDS RIWAYAT HR REALTIME */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT HR REALTIME</Text>
-                <Text className="text-normal text-gray-500">{latesetHRDateText || "Belum ada riwayat"}</Text>
+                {/* <Text className="text-normal text-gray-500">{latesetHRDateText || "Belum ada riwayat"}</Text>
 
                 <View className="flex-col gap-3 mt-2">
                   {latestHRRecords.length > 0 ? (
@@ -356,9 +350,9 @@ export default function Records() {
                   ) : (
                     <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
                   )}
-                </View>
+                </View> */}
 
-                <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_hr_realtime")}>
+                <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_realtime")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
