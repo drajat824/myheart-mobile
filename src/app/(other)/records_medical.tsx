@@ -2,7 +2,6 @@ import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
 import { ActivityIndicator, Animated, Easing, InteractionManager, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
-// import Pdf from "react-native-pdf";
 import { MedicalRecord } from "../(tabs)/records";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
@@ -13,13 +12,9 @@ const API_BASE_URL = "http://10.33.9.77:3000";
 // Helper untuk format URL file PDF backend
 const getFileUrl = (path: string | null | undefined) => {
   if (!path) return null;
-
-  // Jika path dimulai dengan "../file", arahkan ke endpoint view
   if (path.startsWith("../file")) {
-    // Memasukkan path utuh ke dalam query parameter
     return `${API_BASE_URL}/api/medical-records/view?path=${path}`;
   }
-
   return path;
 };
 
@@ -27,11 +22,14 @@ export default function RecordsMedical() {
   const [records, setRecords] = useState<MedicalRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
   const [isLoading, setIsLoading] = useState(true);
-  const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // State untuk menampung ID dokumen yang sedang dibuka PDF-nya secara inline (opsional)
+  // Mengubah state dari single date menjadi date range
+  const [dateRange, setDateRange] = useState<{ start: Date; end: Date }>({
+    start: new Date(),
+    end: new Date(),
+  });
+
   const [expandedPdfId, setExpandedPdfId] = useState<number | null>(null);
-
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -45,7 +43,15 @@ export default function RecordsMedical() {
 
   const spin = rotateAnim.interpolate({ inputRange: [0, 1], outputRange: ["0deg", "360deg"] });
 
-  const fetchRecords = useCallback(async (isPullRefresh = false) => {
+  // Fungsi helper untuk memformat tanggal
+  const formatDate = (date: Date) => {
+    const year = date.getFullYear();
+    const month = String(date.getMonth() + 1).padStart(2, "0");
+    const day = String(date.getDate()).padStart(2, "0");
+    return `${year}-${month}-${day}`;
+  };
+
+  const fetchRecords = useCallback(async (isPullRefresh = false, range: { start: Date; end: Date }) => {
     try {
       isPullRefresh ? setRefreshing(true) : setIsLoading(true);
       const token = await AsyncStorage.getItem("userToken");
@@ -53,7 +59,12 @@ export default function RecordsMedical() {
       if (!token || !userDataStr) return;
 
       const userData = JSON.parse(userDataStr);
-      const data = await apiService.get<MedicalRecord[]>(`/medical-records?user_id=${userData.id}`);
+
+      const formattedStart = formatDate(range.start);
+      const formattedEnd = formatDate(range.end);
+
+      // Mengubah parameter query untuk mendukung rentang tanggal
+      const data = await apiService.get<MedicalRecord[]>(`/medical-records?user_id=${userData.id}&start_time=${formattedStart}&end_time=${formattedEnd}`);
 
       setRecords(data);
       await AsyncStorage.setItem(CACHE_KEY_MEDICAL, JSON.stringify(data));
@@ -67,7 +78,6 @@ export default function RecordsMedical() {
     }
   }, []);
 
-  // Fungsi pembantu untuk membuka link
   const handleOpenDoc = async (url: string | null) => {
     if (!url) return;
     try {
@@ -84,9 +94,9 @@ export default function RecordsMedical() {
 
   useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
-      fetchRecords(false);
+      fetchRecords(false, dateRange);
     });
-  }, []);
+  }, [dateRange, fetchRecords]);
 
   return (
     <WrapperMain>
@@ -94,13 +104,13 @@ export default function RecordsMedical() {
         <RouterSub title="REKAM MEDIS" subTitle="MEDICAL RECORDS" />
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
-            <TouchableOpacity onPress={() => fetchRecords(true)} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
+            <TouchableOpacity onPress={() => fetchRecords(true, dateRange)} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
               <Animated.View style={{ transform: [{ rotate: spin }] }}>
                 <MaterialDesignIcons name="refresh" size={36} color={isLoading || refreshing ? "#A0C4FF" : "#017BFE"} />
               </Animated.View>
             </TouchableOpacity>
             <View className="flex-1">
-              <DatePicker disable={isLoading || refreshing} initialDate={selectedDate} onDateChange={(d) => setSelectedDate(d)} onRangeChange={() => {}} />
+              <DatePicker disable={isLoading || refreshing} initialDate={dateRange.start} onDateChange={(d) => setDateRange({ start: d, end: d })} onRangeChange={(start, end) => setDateRange({ start, end })} />
             </View>
           </View>
 
@@ -128,7 +138,6 @@ export default function RecordsMedical() {
                     </View>
 
                     <View className="flex-col gap-2 mt-2">
-                      {/* Status Lab Result */}
                       <View className="flex-row justify-between items-center">
                         <Text className="text-gray-600">Lab Result:</Text>
                         {labResultUrl ? (
@@ -140,7 +149,6 @@ export default function RecordsMedical() {
                         )}
                       </View>
 
-                      {/* Status Medical Images */}
                       <View className="flex-row justify-between items-center">
                         <Text className="text-gray-600">Medical Images:</Text>
                         {medicalImageUrl ? (
@@ -152,7 +160,6 @@ export default function RecordsMedical() {
                         )}
                       </View>
 
-                      {/* Status Diagnosis */}
                       <View className="flex-row justify-between items-center">
                         <Text className="text-gray-600">Diagnosis:</Text>
                         {diagnosisUrl ? (

@@ -383,11 +383,13 @@ export default function RecordsHRRealtime() {
                           const bpmValue = item.bpm ?? item.averageHR ?? 0;
 
                           const timeFormatted = !isNaN(itemDate.getTime())
-                            ? itemDate.toLocaleTimeString("id-ID", {
-                                hour: "2-digit",
-                                minute: "2-digit",
-                                second: "2-digit", // Tambahkan baris ini
-                              })
+                            ? itemDate
+                                .toLocaleTimeString("id-ID", {
+                                  hour: "2-digit",
+                                  minute: "2-digit",
+                                  second: "2-digit", // Tambahkan baris ini
+                                })
+                                .replace(/\./g, ":")
                             : "--:--";
 
                           return (
