@@ -302,7 +302,7 @@ export default function RecordsDisorder() {
                           ? itemDate.toLocaleTimeString("id-ID", {
                               hour: "2-digit",
                               minute: "2-digit",
-                              timeZone: "Asia/Jakarta",
+                              second: "2-digit", // Tambahkan baris ini
                             })
                           : "--:--";
 

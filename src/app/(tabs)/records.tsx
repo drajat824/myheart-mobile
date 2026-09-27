@@ -178,7 +178,7 @@ export default function Records() {
       <View className="flex-col">
         {/* FLEX 1: HEADER PAGES */}
         <Header>
-          <Text className="text-title text-white">REKAM MEDIS</Text>
+          <Text className="text-title text-white">HEALTH RECORDS</Text>
           <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
         </Header>
 
@@ -262,6 +262,7 @@ export default function Records() {
                         ? itemDate.toLocaleTimeString("id-ID", {
                             hour: "2-digit",
                             minute: "2-digit",
+                            second: "2-digit", // Tambahkan baris ini
                           })
                         : "--:--";
 
@@ -300,6 +301,7 @@ export default function Records() {
                         ? itemDate.toLocaleTimeString("id-ID", {
                             hour: "2-digit",
                             minute: "2-digit",
+                            second: "2-digit", // Tambahkan baris ini
                           })
                         : "--:--";
 
@@ -338,6 +340,7 @@ export default function Records() {
                         ? itemDate.toLocaleTimeString("id-ID", {
                             hour: "2-digit",
                             minute: "2-digit",
+                            second: "2-digit", // Tambahkan baris ini
                           })
                         : "--:--";
 
