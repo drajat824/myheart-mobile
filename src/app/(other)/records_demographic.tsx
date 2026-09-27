@@ -140,7 +140,15 @@ export default function RecordsDemographic() {
 
                 return (
                   <Cards key={item.id || index} className={`flex flex-col gap-2 mb-3`} color={isItemToday ? "#FFFFFF" : "#FFDD78"}>
-                    <Text className="text-normal font-bold border-b border-gray-100 pb-2">{new Date(dateStringToUse || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                    <Text className="text-normal font-bold border-b border-gray-100 pb-2">
+                      {isItemToday
+                        ? `Hari ini, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                            dateStyle: "long",
+                          })}`
+                        : new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                            dateStyle: "long",
+                          })}
+                    </Text>
                     <View className="flex-col gap-2 mt-2">
                       <View className="flex-row justify-between">
                         <Text className="text-gray-600">Umur / Gender:</Text>

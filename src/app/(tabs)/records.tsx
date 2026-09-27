@@ -166,7 +166,7 @@ export default function Records() {
     }, [loadCachedHR]),
   );
 
-  const renderDescriptionText = () => <Text className="text-sm text-gray-500 mb-1">Showing the 3 most recent records. Open the page to update and view more data.</Text>;
+  const renderDescriptionText = () => <Text className="text-sm text-gray-500 mb-1">Showing the 3 recent records. Open the page to update and view more data.</Text>;
   const renderNoData = () => <Text className="text-gray-400 italic">No data has been saved yet. Open the page to update your data.</Text>;
 
   return (

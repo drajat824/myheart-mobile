@@ -173,7 +173,15 @@ export default function RecordsMedical() {
                 return (
                   <Cards key={item.id || index} className="flex flex-col gap-2 mb-3" color={isItemToday ? "#FFFFFF" : "#FFDD78"}>
                     <View className="flex-row justify-between items-center border-b border-gray-100 pb-2">
-                      <Text className="text-normal font-bold">Pemeriksaan: {new Date(dateStringToUse || "").toLocaleDateString("id-ID")}</Text>
+                      <Text className="text-normal font-bold border-gray-100 pb-2">
+                        {isItemToday
+                          ? `Hari ini, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                              dateStyle: "long",
+                            })}`
+                          : new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                              dateStyle: "long",
+                            })}
+                      </Text>
                       <MaterialDesignIcons name="folder-account-outline" size={24} color="#DB3546" />
                     </View>
 
