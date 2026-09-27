@@ -56,6 +56,9 @@ export default function Records() {
 
   const [isDevice, setDevice] = useState(true);
 
+  type TabMenu = "REALTIME" | "DEMOGRAPHIC" | "MEDICAL";
+  const [activeTab, setActiveTab] = useState<TabMenu>("REALTIME");
+
   const [latestHRRecords, setLatestHRRecords] = useState<AggregateRecord[]>([]);
   const [latesetHRDateText, setLatesetHRDateText] = useState<string>("");
 
@@ -185,62 +188,40 @@ export default function Records() {
         {/* FLEX 2: CARDS CONTENT */}
         <View className="flex flex-col gap-4 mt-4">
           {/* CARDS MENU */}
-          <View className="flex-row justify-center items-center my-4">
-            <Pressable className={isDevice ? "active:opacity-40 bg-theme-green p-4 shadow-md rounded-l-full w-40" : "active:opacity-40 bg-white p-4 shadow-md rounded-l-full w-40"} onPress={() => setDevice(true)}>
-              <Text className={isDevice ? "text-normal text-center font-semibold text-white" : "text-normal text-center font-semibold text-black"}>DEVICE</Text>
+          <View className="flex-row flex-wrap justify-between gap-y-3 my-4 px-1">
+            {/* Menu 1 (Kiri Atas) */}
+            <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-[48%] justify-center items-center ${activeTab === "REALTIME" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("REALTIME")}>
+              <Text className={`text-normal font-semibold ${activeTab === "REALTIME" ? "text-white" : "text-black"}`}>REALTIME</Text>
             </Pressable>
 
-            <Pressable className={!isDevice ? "active:opacity-40 bg-theme-green p-4 shadow-md rounded-r-full w-40" : "active:opacity-40 bg-white p-4 shadow-md rounded-r-full w-40"} onPress={() => setDevice(false)}>
-              <Text className={!isDevice ? "text-normal text-center font-semibold text-white" : "text-normal text-center font-semibold text-black"}>DIAGNOSIS</Text>
+            {/* Menu 2 (Kanan Atas) */}
+            <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-[48%] justify-center items-center ${activeTab === "DEMOGRAPHIC" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("DEMOGRAPHIC")}>
+              <Text className={`text-normal font-semibold ${activeTab === "DEMOGRAPHIC" ? "text-white" : "text-black"}`}>DEMOGRAPHIC</Text>
+            </Pressable>
+
+            {/* Menu 3 (Bawah, Lebar Penuh) */}
+            <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-full justify-center items-center ${activeTab === "MEDICAL" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("MEDICAL")}>
+              <Text className={`text-normal font-semibold ${activeTab === "MEDICAL" ? "text-white" : "text-black"}`}>MEDICAL RECORDS</Text>
             </Pressable>
           </View>
 
           {/* CARDS PEMERIKSAAN */}
-          {!isDevice && (
+          {activeTab == "DEMOGRAPHIC" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">PEMERIKSAAN BERKALA</Text>
+              <Text className="text-normal font-bold">DEMOGRAPHIC</Text>
               <Text className="text-normal text-gray-500">{latestPeriodicDateText || "Belum ada riwayat"}</Text>
+              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
+                <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
+              </Pressable>
+            </Cards>
+          )}
 
-              {latestPeriodicRecord ? (
-                <View className="flex-col gap-3 mt-2">
-                  <View className="gap-2">
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2 rounded-full bg-black" />
-                      <Text className="text-xl">Berat/Tinggi Badan</Text>
-                    </View>
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2" />
-                      <Text className="text-xl font-semibold">
-                        {latestPeriodicRecord.weight ?? "--"} kg/{latestPeriodicRecord.height ?? "--"} cm
-                      </Text>
-                    </View>
-                  </View>
-                  <View className="gap-2">
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2 rounded-full bg-black" />
-                      <Text className="text-xl">Kolestrol</Text>
-                    </View>
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2" />
-                      <Text className="text-xl font-semibold">{latestPeriodicRecord.cholesterol ?? "--"} mg/dL</Text>
-                    </View>
-                  </View>
-                  <View className="gap-2">
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2 rounded-full bg-black" />
-                      <Text className="text-xl">Gula Darah</Text>
-                    </View>
-                    <View className="flex-row items-center gap-4">
-                      <View className="w-2 h-2" />
-                      <Text className="text-xl font-semibold">{latestPeriodicRecord.blood_sugar ?? "--"} mg/dL</Text>
-                    </View>
-                  </View>
-                </View>
-              ) : (
-                <Text className="text-gray-400 italic mt-2">Belum ada data pemeriksaan tersimpan</Text>
-              )}
-
-              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_periodic")}>
+          {activeTab == "MEDICAL" && (
+            <Cards className="flex flex-col gap-2">
+              <Text className="text-normal font-bold">MEDICAL CHECKUP</Text>
+              <Text className="text-normal text-gray-500">{latestPeriodicDateText || "Belum ada riwayat"}</Text>
+              <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
@@ -248,7 +229,7 @@ export default function Records() {
           )}
 
           {/* CARDS RIWAYAT GANGGUAN & HR */}
-          {isDevice && (
+          {activeTab == "REALTIME" && (
             <View className="flex flex-col gap-4">
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT GANGGUAN JANTUNG</Text>
