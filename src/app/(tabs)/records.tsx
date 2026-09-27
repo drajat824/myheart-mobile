@@ -218,12 +218,21 @@ export default function Records() {
               <View className="flex-col gap-3 mt-2">
                 {latestMedicals.length > 0 ? (
                   latestMedicals.map((item, index) => (
-                    <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-2">
-                      <View className="flex-row items-center gap-2">
-                        <MaterialDesignIcons name="file-document-outline" size={20} color="#000" />
-                        <Text className="flex-1 font-semibold">{item.diagnosis ? "Diagnosis Tersedia" : "Rekam Medis"}</Text>
+                    <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                      {/* Tambahkan tanggal agar jelas pemisah antar rekam medis */}
+                      <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                      <View className="flex-row justify-between pl-2">
+                        <Text className="text-gray-600">Lab Result:</Text>
+                        <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
                       </View>
-                      {item.lab_result && <Text className="text-gray-500 ml-7">- Lab Result terlampir</Text>}
+                      <View className="flex-row justify-between pl-2">
+                        <Text className="text-gray-600">Medical Images:</Text>
+                        <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
+                      </View>
+                      <View className="flex-row justify-between pl-2">
+                        <Text className="text-gray-600">Diagnosis:</Text>
+                        <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
+                      </View>
                     </View>
                   ))
                 ) : (

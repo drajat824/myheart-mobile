@@ -1,21 +1,25 @@
 import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
 import { useCallback, useEffect, useRef, useState } from "react";
-import { ActivityIndicator, Animated, Easing, InteractionManager, ScrollView, Text, TouchableOpacity, View } from "react-native";
+import { ActivityIndicator, Animated, Easing, InteractionManager, Linking, ScrollView, Text, TouchableOpacity, View } from "react-native";
 // import Pdf from "react-native-pdf";
 import { MedicalRecord } from "../(tabs)/records";
 import { Cards, DatePicker, RouterSub, WrapperMain } from "../../component";
 import { apiService } from "../../utils/apiService";
 
 const CACHE_KEY_MEDICAL = "@myheartz_medical_cache";
-const API_BASE_URL = "http://192.168.1.8:3000"; // Sesuaikan dengan IP BASE_URL di apiService
+const API_BASE_URL = "http://10.33.9.77:3000";
 
 // Helper untuk format URL file PDF backend
 const getFileUrl = (path: string | null | undefined) => {
   if (!path) return null;
+
+  // Jika path dimulai dengan "../file", arahkan ke endpoint view
   if (path.startsWith("../file")) {
-    return path.replace("../file", `${API_BASE_URL}/file`);
+    // Memasukkan path utuh ke dalam query parameter
+    return `${API_BASE_URL}/api/medical-records/view?path=${path}`;
   }
+
   return path;
 };
 
@@ -25,7 +29,7 @@ export default function RecordsMedical() {
   const [isLoading, setIsLoading] = useState(true);
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
 
-  // State untuk menampung ID dokumen yang sedang dibuka PDF-nya
+  // State untuk menampung ID dokumen yang sedang dibuka PDF-nya secara inline (opsional)
   const [expandedPdfId, setExpandedPdfId] = useState<number | null>(null);
 
   const rotateAnim = useRef(new Animated.Value(0)).current;
@@ -49,7 +53,6 @@ export default function RecordsMedical() {
       if (!token || !userDataStr) return;
 
       const userData = JSON.parse(userDataStr);
-      // Di API Controller Medical, filter range tidak tersedia secara bawaan, ditarik berdasarkan user_id
       const data = await apiService.get<MedicalRecord[]>(`/medical-records?user_id=${userData.id}`);
 
       setRecords(data);
@@ -63,6 +66,21 @@ export default function RecordsMedical() {
       setIsLoading(false);
     }
   }, []);
+
+  // Fungsi pembantu untuk membuka link
+  const handleOpenDoc = async (url: string | null) => {
+    if (!url) return;
+    try {
+      const supported = await Linking.canOpenURL(url);
+      if (supported) {
+        await Linking.openURL(url);
+      } else {
+        console.error("Tidak dapat membuka URL ini: " + url);
+      }
+    } catch (error) {
+      console.error("Terjadi kesalahan saat membuka link:", error);
+    }
+  };
 
   useEffect(() => {
     InteractionManager.runAfterInteractions(() => {
@@ -98,8 +116,9 @@ export default function RecordsMedical() {
               </Cards>
             ) : (
               records.map((item, index) => {
+                const labResultUrl = getFileUrl(item.lab_result);
+                const medicalImageUrl = getFileUrl(item.medical_image);
                 const diagnosisUrl = getFileUrl(item.diagnosis);
-                const isExpanded = expandedPdfId === item.id;
 
                 return (
                   <Cards key={item.id || index} className="flex flex-col gap-2 mb-3">
@@ -109,38 +128,41 @@ export default function RecordsMedical() {
                     </View>
 
                     <View className="flex-col gap-2 mt-2">
-                      <View className="flex-row justify-between">
-                        <Text className="text-gray-600">ID Rekam:</Text>
-                        <Text className="font-semibold">#{item.id}</Text>
-                      </View>
-                      <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Status File:</Text>
-                        <Text className="font-semibold text-theme-green">{item.diagnosis ? "Tersedia" : "Kosong"}</Text>
+                      {/* Status Lab Result */}
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-gray-600">Lab Result:</Text>
+                        {labResultUrl ? (
+                          <TouchableOpacity onPress={() => handleOpenDoc(labResultUrl)}>
+                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                        )}
                       </View>
 
-                      {diagnosisUrl && (
-                        <TouchableOpacity onPress={() => setExpandedPdfId(isExpanded ? null : item.id || null)} className="mt-2 bg-theme-green py-3 rounded-lg flex-row justify-center items-center gap-2">
-                          <MaterialDesignIcons name={isExpanded ? "chevron-up" : "file-pdf-box"} size={22} color="#FFF" />
-                          <Text className="text-white font-bold">{isExpanded ? "Tutup Dokumen PDF" : "Lihat Dokumen PDF"}</Text>
-                        </TouchableOpacity>
-                      )}
+                      {/* Status Medical Images */}
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-gray-600">Medical Images:</Text>
+                        {medicalImageUrl ? (
+                          <TouchableOpacity onPress={() => handleOpenDoc(medicalImageUrl)}>
+                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                        )}
+                      </View>
 
-                      {/* Penampil PDF Menggunakan react-native-pdf */}
-                      {/* {isExpanded && diagnosisUrl && (
-                        <View className="mt-3 h-[400px] w-full bg-gray-200 rounded-lg overflow-hidden border border-gray-300">
-                          <Pdf
-                            source={{ uri: diagnosisUrl, cache: true }}
-                            trustAllCerts={false}
-                            style={{ flex: 1, width: Dimensions.get("window").width - 48 }}
-                            onLoadComplete={(numberOfPages, filePath) => {
-                              console.log(`PDF loaded with ${numberOfPages} pages`);
-                            }}
-                            onError={(error) => {
-                              console.log("Failed to load PDF:", error);
-                            }}
-                          />
-                        </View>
-                      )} */}
+                      {/* Status Diagnosis */}
+                      <View className="flex-row justify-between items-center">
+                        <Text className="text-gray-600">Diagnosis:</Text>
+                        {diagnosisUrl ? (
+                          <TouchableOpacity onPress={() => handleOpenDoc(diagnosisUrl)}>
+                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                          </TouchableOpacity>
+                        ) : (
+                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                        )}
+                      </View>
                     </View>
                   </Cards>
                 );
