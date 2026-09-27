@@ -9,16 +9,32 @@ import { Cards, Header, WrapperMain } from "../../component";
 const CACHE_KEY = "@myheartz_aggregation_cache";
 const CACHE_KEY_REALTIME = "@myheartz_realtime_cache";
 const CACHE_KEY_ISSUES = "@myheartz_disorder_cache";
-const CACHE_KEY_PERIODIC = "@myheartz_periodic_cache";
+const CACHE_KEY_DEMOGRAPHIC = "@myheartz_demographic_cache";
+const CACHE_KEY_MEDICAL = "@myheartz_medical_cache";
 
-type PeriodicRecord = {
+export type DemographicRecord = {
   id?: number;
   user_id?: number;
-  weight?: number;
+  check_date?: string; // Ditambahkan untuk penyesuaian database baru
+  date_of_birth?: string;
+  gender?: string;
+  age?: number;
   height?: number;
-  cholesterol?: number;
+  weight?: number;
+  bmi?: number;
   blood_sugar?: number;
-  check_date?: string | number;
+  cholesterol?: number;
+  created_at?: string; // Dipertahankan untuk fallback data cache lama
+};
+
+export type MedicalRecord = {
+  id?: number;
+  user_id?: number;
+  lab_result?: string;
+  medical_image?: string;
+  diagnosis?: string;
+  check_date?: string;
+  created_at?: string;
 };
 
 type AggregateRecord = {
@@ -31,30 +47,21 @@ type AggregateRecord = {
   end_time?: string | number;
 };
 
-// Helper untuk parse tanggal aman di Hermes JS
 const parseToDate = (dateVal: string | number | undefined): Date => {
   if (!dateVal) return new Date(NaN);
   if (typeof dateVal === "number") return new Date(dateVal);
-
   if (typeof dateVal === "string") {
-    // Ubah spasi dari MySQL menjadi "T" (misal: "2026-09-22 22:18:00" -> "2026-09-22T22:18:00")
     let formattedStr = dateVal.includes(" ") ? dateVal.replace(" ", "T") : dateVal;
-
-    // Jika belum ada penanda UTC (Z) atau Offset (+/-), tambahkan "Z"
     if (!formattedStr.endsWith("Z") && !formattedStr.includes("+") && !formattedStr.includes("-", 10)) {
-      formattedStr += "Z"; // Menginformasikan ke JS bahwa ini adalah waktu UTC
+      formattedStr += "Z";
     }
-
     return new Date(formattedStr);
   }
-
   return new Date(dateVal);
 };
 
 export default function Records() {
   const router = useRouter();
-
-  const [isDevice, setDevice] = useState(true);
 
   type TabMenu = "REALTIME" | "DEMOGRAPHIC" | "MEDICAL";
   const [activeTab, setActiveTab] = useState<TabMenu>("REALTIME");
@@ -68,15 +75,18 @@ export default function Records() {
   const [latestIssueRecords, setLatestIssueRecords] = useState<HeartIssueRecord[]>([]);
   const [latestIssueDateText, setLatestIssueDateText] = useState<string>("");
 
-  const [latestPeriodicRecord, setLatestPeriodicRecord] = useState<PeriodicRecord | null>(null);
-  const [latestPeriodicDateText, setLatestPeriodicDateText] = useState<string>("");
+  const [latestDemographics, setLatestDemographics] = useState<DemographicRecord[]>([]);
+  const [latestDemographicDateText, setLatestDemographicDateText] = useState<string>("");
 
-  // Mengambil cuplikan data terbaru dari cache
+  const [latestMedicals, setLatestMedicals] = useState<MedicalRecord[]>([]);
+  const [latestMedicalDateText, setLatestMedicalDateText] = useState<string>("");
+
   const loadCachedHR = useCallback(async () => {
     try {
-      // 1. Load HR Cache
+      // 1. Load HR Cache & Issues Cache
       const cachedAggregation = await AsyncStorage.getItem(CACHE_KEY);
       const cachedRealtime = await AsyncStorage.getItem(CACHE_KEY_REALTIME);
+      const cachedIssues = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
 
       if (cachedAggregation) {
         const parsedData: AggregateRecord[] = JSON.parse(cachedAggregation);
@@ -84,18 +94,8 @@ export default function Records() {
           const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
           setLatestHRAggregation(preview);
-
           const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
-          if (!isNaN(topDate.getTime())) {
-            setLatestHRAggregationDateText(
-              topDate.toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }),
-            );
-          }
+          if (!isNaN(topDate.getTime())) setLatestHRAggregationDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
@@ -105,63 +105,45 @@ export default function Records() {
           const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
           setLatestHRRecords(preview);
-
           const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
-          if (!isNaN(topDate.getTime())) {
-            setLatesetHRDateText(
-              topDate.toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }),
-            );
-          }
+          if (!isNaN(topDate.getTime())) setLatesetHRDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
-      // 2. Load Disorder/Issues Cache (BARU DITAMBAHKAN)
-      const cachedIssues = await AsyncStorage.getItem(CACHE_KEY_ISSUES);
       if (cachedIssues) {
         const parsedIssues: HeartIssueRecord[] = JSON.parse(cachedIssues);
         if (Array.isArray(parsedIssues) && parsedIssues.length > 0) {
           const sortedIssues = [...parsedIssues].sort((a, b) => parseToDate(b.recorded_at).getTime() - parseToDate(a.recorded_at).getTime());
           const previewIssues = sortedIssues.slice(0, 3);
           setLatestIssueRecords(previewIssues);
-
           const topIssueDate = parseToDate(previewIssues[0].recorded_at);
-          if (!isNaN(topIssueDate.getTime())) {
-            setLatestIssueDateText(
-              topIssueDate.toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }),
-            );
-          }
+          if (!isNaN(topIssueDate.getTime())) setLatestIssueDateText(topIssueDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
-      // 3. Load Periodic Cache
-      const cachedPeriodic = await AsyncStorage.getItem(CACHE_KEY_PERIODIC);
-      if (cachedPeriodic) {
-        const parsedPeriodic: PeriodicRecord[] = JSON.parse(cachedPeriodic);
-        if (Array.isArray(parsedPeriodic) && parsedPeriodic.length > 0) {
-          const sortedPeriodic = [...parsedPeriodic].sort((a, b) => parseToDate(b.check_date).getTime() - parseToDate(a.check_date).getTime());
-          setLatestPeriodicRecord(sortedPeriodic[0]);
+      // 2. Load Demographic Cache (Menggunakan check_date)
+      const cachedDemographic = await AsyncStorage.getItem(CACHE_KEY_DEMOGRAPHIC);
+      if (cachedDemographic) {
+        const parsedDemographic: DemographicRecord[] = JSON.parse(cachedDemographic);
+        if (Array.isArray(parsedDemographic) && parsedDemographic.length > 0) {
+          const sorted = [...parsedDemographic].sort((a, b) => parseToDate(b.check_date || b.created_at).getTime() - parseToDate(a.check_date || a.created_at).getTime());
+          const preview = sorted.slice(0, 2);
+          setLatestDemographics(preview);
+          const topDate = parseToDate(preview[0].check_date || preview[0].created_at);
+          if (!isNaN(topDate.getTime())) setLatestDemographicDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
+        }
+      }
 
-          const topPeriodicDate = parseToDate(sortedPeriodic[0].check_date);
-          if (!isNaN(topPeriodicDate.getTime())) {
-            setLatestPeriodicDateText(
-              topPeriodicDate.toLocaleDateString("id-ID", {
-                weekday: "long",
-                day: "numeric",
-                month: "long",
-                year: "numeric",
-              }),
-            );
-          }
+      // 3. Load Medical Cache
+      const cachedMedical = await AsyncStorage.getItem(CACHE_KEY_MEDICAL);
+      if (cachedMedical) {
+        const parsedMedical: MedicalRecord[] = JSON.parse(cachedMedical);
+        if (Array.isArray(parsedMedical) && parsedMedical.length > 0) {
+          const sorted = [...parsedMedical].sort((a, b) => parseToDate(b.check_date || b.created_at).getTime() - parseToDate(a.check_date || a.created_at).getTime());
+          const preview = sorted.slice(0, 2);
+          setLatestMedicals(preview);
+          const topDate = parseToDate(preview[0].check_date || preview[0].created_at);
+          if (!isNaN(topDate.getTime())) setLatestMedicalDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
     } catch (error) {
@@ -169,7 +151,6 @@ export default function Records() {
     }
   }, []);
 
-  // Reload cache setiap kali halaman ini aktif/fokus
   useFocusEffect(
     useCallback(() => {
       loadCachedHR();
@@ -179,37 +160,50 @@ export default function Records() {
   return (
     <WrapperMain>
       <View className="flex-col">
-        {/* FLEX 1: HEADER PAGES */}
         <Header>
           <Text className="text-title text-white">HEALTH RECORDS</Text>
           <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
         </Header>
 
-        {/* FLEX 2: CARDS CONTENT */}
         <View className="flex flex-col gap-4 mt-4">
-          {/* CARDS MENU */}
           <View className="flex-row flex-wrap justify-between gap-y-3 my-4 px-1">
-            {/* Menu 1 (Kiri Atas) */}
             <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-[48%] justify-center items-center ${activeTab === "REALTIME" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("REALTIME")}>
               <Text className={`text-normal font-semibold ${activeTab === "REALTIME" ? "text-white" : "text-black"}`}>REALTIME</Text>
             </Pressable>
-
-            {/* Menu 2 (Kanan Atas) */}
             <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-[48%] justify-center items-center ${activeTab === "DEMOGRAPHIC" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("DEMOGRAPHIC")}>
               <Text className={`text-normal font-semibold ${activeTab === "DEMOGRAPHIC" ? "text-white" : "text-black"}`}>DEMOGRAPHIC</Text>
             </Pressable>
-
-            {/* Menu 3 (Bawah, Lebar Penuh) */}
             <Pressable className={`active:opacity-40 py-3 shadow-sm rounded-full border w-full justify-center items-center ${activeTab === "MEDICAL" ? "bg-theme-green border-theme-green" : "bg-white border-gray-200"}`} onPress={() => setActiveTab("MEDICAL")}>
               <Text className={`text-normal font-semibold ${activeTab === "MEDICAL" ? "text-white" : "text-black"}`}>MEDICAL RECORDS</Text>
             </Pressable>
           </View>
 
-          {/* CARDS PEMERIKSAAN */}
           {activeTab == "DEMOGRAPHIC" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">DEMOGRAPHIC</Text>
-              <Text className="text-normal text-gray-500">{latestPeriodicDateText || "Belum ada riwayat"}</Text>
+              <Text className="text-normal font-bold">DATA DEMOGRAFI TERAKHIR</Text>
+              <Text className="text-normal text-gray-500">{latestDemographicDateText || "Belum ada riwayat"}</Text>
+              <View className="flex-col gap-3 mt-2">
+                {latestDemographics.length > 0 ? (
+                  latestDemographics.map((item, index) => (
+                    <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-2">
+                      <View className="flex-row justify-between">
+                        <Text>BB / TB:</Text>
+                        <Text className="font-semibold">
+                          {item.weight} kg / {item.height} cm
+                        </Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text>BMI / Gula Darah:</Text>
+                        <Text className="font-semibold">
+                          {item.bmi} / {item.blood_sugar} mg/dL
+                        </Text>
+                      </View>
+                    </View>
+                  ))
+                ) : (
+                  <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
+                )}
+              </View>
               <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
@@ -219,8 +213,23 @@ export default function Records() {
 
           {activeTab == "MEDICAL" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">MEDICAL CHECKUP</Text>
-              <Text className="text-normal text-gray-500">{latestPeriodicDateText || "Belum ada riwayat"}</Text>
+              <Text className="text-normal font-bold">REKAM MEDIS TERAKHIR</Text>
+              <Text className="text-normal text-gray-500">{latestMedicalDateText || "Belum ada riwayat"}</Text>
+              <View className="flex-col gap-3 mt-2">
+                {latestMedicals.length > 0 ? (
+                  latestMedicals.map((item, index) => (
+                    <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-2">
+                      <View className="flex-row items-center gap-2">
+                        <MaterialDesignIcons name="file-document-outline" size={20} color="#000" />
+                        <Text className="flex-1 font-semibold">{item.diagnosis ? "Diagnosis Tersedia" : "Rekam Medis"}</Text>
+                      </View>
+                      {item.lab_result && <Text className="text-gray-500 ml-7">- Lab Result terlampir</Text>}
+                    </View>
+                  ))
+                ) : (
+                  <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
+                )}
+              </View>
               <Pressable className="flex flex-row items-center justify-end active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />

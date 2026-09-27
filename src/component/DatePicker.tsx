@@ -149,7 +149,9 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
           <Pressable className={`active:opacity-50 ${disable ? "opacity-50" : ""} flex-1 active:opacity-50`} disabled={disable} onPress={() => openModal("range-start-picker")}>
             <Cards className="flex flex-row items-center justify-center py-[15] gap-2">
               <MaterialDesignIcons name="calendar-import" size={24} color="#DB3546" />
-              <Text className="text-normal">{formattedRangeStartDate}</Text>
+              <Text className="text-normal flex-1" numberOfLines={1} ellipsizeMode="tail">
+                {formattedRangeStartDate}
+              </Text>
             </Cards>
           </Pressable>
 
@@ -158,7 +160,9 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
           <Pressable className={`active:opacity-50 ${disable ? "opacity-50" : ""} flex-1 active:opacity-50`} disabled={disable} onPress={() => openModal("range-end-picker")}>
             <Cards className="flex flex-row items-center justify-center py-[15] gap-2">
               <MaterialDesignIcons name="calendar-export" size={24} color="#DB3546" />
-              <Text className="text-normal">{formattedRangeEndDate}</Text>
+              <Text className="text-normal flex-1" numberOfLines={1} ellipsizeMode="tail">
+                {formattedRangeEndDate}
+              </Text>
             </Cards>
           </Pressable>
         </View>
