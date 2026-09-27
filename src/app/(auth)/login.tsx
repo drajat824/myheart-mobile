@@ -14,7 +14,7 @@ export default function Login() {
   const router = useRouter();
   const { openModal, closeModal } = useModal();
 
-  const [email, setEmail] = useState("john@mail.com");
+  const [email, setEmail] = useState("drajat@mail.com");
   const [password, setPassword] = useState("john123");
   const [showPassword, setShowPassword] = useState(false);
   const [isLoading, setIsLoading] = useState(false);
@@ -29,7 +29,7 @@ export default function Login() {
 
   const handleLogin = async () => {
     if (!email || !password) {
-      showAlert("Perhatian", "Email dan kata sandi wajib diisi!");
+      showAlert("Attention", "Email and password are required!");
       return;
     }
 
@@ -95,7 +95,7 @@ export default function Login() {
           <View className="flex-1 justify-between pb-6">
             <View className="flex-1 items-center justify-center pt-10">
               <MaterialDesignIcons name="account-circle" size={200} color="#333333" />
-              <Text className="mt-2 text-2xl font-bold text-title">MASUK</Text>
+              <Text className="mt-2 text-2xl font-bold text-title">LOGIN</Text>
             </View>
             <View className="my-6 flex-1 justify-center gap-4">
               <View className="gap-2">
@@ -104,13 +104,13 @@ export default function Login() {
               </View>
 
               <View className="gap-2">
-                <Text className="text-label">KATA SANDI</Text>
+                <Text className="text-label">PASSWORD</Text>
                 <CustomTextInput placeholder="Masukan kata sandi.." value={password} onChangeText={setPassword} secureTextEntry={!showPassword} right={<TextInput.Icon icon={showPassword ? "eye-off" : "eye"} onPress={() => setShowPassword(!showPassword)} />} />
               </View>
             </View>
             <View className="flex-none gap-3">
               <Button onPress={handleLogin} mode="contained" buttonColor="#038175" disabled={isLoading}>
-                MASUK
+                LOGIN
               </Button>
             </View>
           </View>
@@ -124,7 +124,7 @@ export default function Login() {
             <Text className="mb-2 text-xl font-bold text-red-600">{alertConfig.title}</Text>
             <Text className="mb-6 text-gray-700">{alertConfig.message}</Text>
             <Button onPress={() => closeModal("login-alert")} mode="contained" buttonColor="#038175">
-              TUTUP
+              CLOSE
             </Button>
           </Cards>
         </View>

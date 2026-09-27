@@ -186,7 +186,7 @@ function RootLayoutContent() {
     await Notifications.scheduleNotificationAsync({
       identifier: `snooze-${activeSchedule.id}-${Date.now()}`,
       content: {
-        title: "Waktunya Minum Obat! 💊",
+        title: "Time to Take Your Medicine! 💊",
         body: `${activeSchedule.brand_name || activeSchedule.generic_name}`,
         data: { scheduleId: activeSchedule.id },
         sound: true,

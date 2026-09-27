@@ -9,15 +9,15 @@ const backgroundBleManager = new BleManager();
 
 export const backgroundOptions = {
   taskName: "SmartwatchHR",
-  taskTitle: "Memantau Detak Jantung",
-  taskDesc: "Terhubung di latar belakang...",
+  taskTitle: "Monitoring Heart Rate",
+  taskDesc: "Connected in the background...",
   taskIcon: {
     name: "ic_launcher",
     type: "mipmap",
   },
   color: "#017BFE",
   parameters: {
-    deviceId: "", // Nilai ini akan diisi saat start
+    deviceId: "", // Value will be set when starting
   },
 };
 

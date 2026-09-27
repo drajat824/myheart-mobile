@@ -62,7 +62,7 @@ const formatDisplayDate = (dateKey: string): string => {
   });
 
   if (isDateToday(dateKey)) {
-    return `Hari ini, ${formattedDate}`;
+    return `Today, ${formattedDate}`;
   }
 
   return formattedDate;
@@ -271,7 +271,7 @@ export default function RecordsHRAggregation() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT AGREGASI HR" />
+        <RouterSub title="HEALTH RECORD" subTitle="HR AGGREAGTION HISTORY" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
@@ -289,11 +289,11 @@ export default function RecordsHRAggregation() {
             {isLoading && sortedGroupedEntries.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="text-gray-500 font-medium mt-4">Memuat data...</Text>
+                <Text className="text-gray-500 font-medium mt-4">Loading data...</Text>
               </Cards>
             ) : sortedGroupedEntries.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada data riwayat heart rate pada tanggal ini.</Text>
+                <Text className="text-gray-500 font-medium">No heart rate records available.</Text>
               </Cards>
             ) : (
               sortedGroupedEntries.map(({ date, data }) => {

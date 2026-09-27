@@ -174,7 +174,7 @@ export default function Records() {
       <View className="flex-col">
         <Header>
           <Text className="text-title text-white">HEALTH RECORDS</Text>
-          <Text className="text-normal text-white font-light">Riwayat pemeriksaan, grafik detak jantung, dan riwayat kesehatan harian.</Text>
+          <Text className="text-normal text-white font-light">History of check-ups, heart rate graphs, and daily health records.</Text>
         </Header>
 
         <View className="flex flex-col gap-4 mt-4">
@@ -208,17 +208,17 @@ export default function Records() {
                           return (
                             <View key={`demo-item-${itemIdx}`} className="mb-2">
                               <View className="flex-row justify-between pl-2">
-                                <Text className="text-gray-600">Pukul:</Text>
+                                <Text className="text-gray-600">Time:</Text>
                                 <Text className="font-semibold">{timeFormatted} WIB</Text>
                               </View>
                               <View className="flex-row justify-between pl-2">
-                                <Text className="text-gray-600">BB / TB:</Text>
+                                <Text className="text-gray-600">Weight / Height:</Text>
                                 <Text className="font-semibold">
                                   {item.weight} kg / {item.height} cm
                                 </Text>
                               </View>
                               <View className="flex-row justify-between pl-2">
-                                <Text className="text-gray-600">BMI / Gula Darah:</Text>
+                                <Text className="text-gray-600">BMI / Blood Sugar:</Text>
                                 <Text className="font-semibold">
                                   {item.bmi} / {item.blood_sugar} mg/dL
                                 </Text>
@@ -232,7 +232,7 @@ export default function Records() {
               </View>
 
               <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
-                <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                <Text className="text-theme-red text-xl">View More</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
             </Cards>
@@ -256,20 +256,20 @@ export default function Records() {
                           return (
                             <View key={`med-item-${itemIdx}`} className="mb-2">
                               <View className="flex-row justify-between pl-2">
-                                <Text className="text-gray-600">Pukul:</Text>
+                                <Text className="text-gray-600">Time:</Text>
                                 <Text className="font-semibold">{timeFormatted} WIB</Text>
                               </View>
                               <View className="flex-row justify-between pl-2">
-                                <Text className="text-gray-600">Lab Result:</Text>
-                                <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
+                                <Text className="text-gray-600">Lab Results:</Text>
+                                <Text className="font-semibold">{item.lab_result ? "Available" : "Unavailable"}</Text>
                               </View>
                               <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Medical Images:</Text>
-                                <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
+                                <Text className="font-semibold">{item.medical_image ? "Available" : "Unavailable"}</Text>
                               </View>
                               <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Diagnosis:</Text>
-                                <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
+                                <Text className="font-semibold">{item.diagnosis ? "Available" : "Unavailable"}</Text>
                               </View>
                             </View>
                           );
@@ -280,7 +280,7 @@ export default function Records() {
               </View>
 
               <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
-                <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                <Text className="text-theme-red text-xl">View More</Text>
                 <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
               </Pressable>
             </Cards>
@@ -288,9 +288,9 @@ export default function Records() {
 
           {activeTab == "REALTIME" && (
             <View className="flex flex-col gap-4">
-              {/* CARDS RIWAYAT GANGGUAN JANTUNG */}
+              {/* CARDS HEART DISORDER HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">RIWAYAT GANGGUAN JANTUNG</Text>
+                <Text className="text-normal font-bold">HEART DISORDER HISTORY</Text>
                 {latestIssueRecords.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -324,14 +324,14 @@ export default function Records() {
                 </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
-                  <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                  <Text className="text-theme-red text-xl">View More</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
               </Cards>
 
-              {/* CARDS RIWAYAT HR AGREGASI */}
+              {/* CARDS HR AGGREGATION HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">RIWAYAT AGREGASI HR</Text>
+                <Text className="text-normal font-bold">HR AGGREGATION HISTORY</Text>
                 {latestHRAggregation.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -357,7 +357,7 @@ export default function Records() {
 
                             return (
                               <View key={`agg-item-${itemIdx}`} className="flex-row justify-between pl-2 items-center mb-1">
-                                <Text className="text-gray-600 flex-1">Pukul {timeFormatted} WIB:</Text>
+                                <Text className="text-gray-600 flex-1">At {timeFormatted} WIB:</Text>
                                 <Text className="font-semibold">{bpmValue} BPM</Text>
                               </View>
                             );
@@ -368,14 +368,14 @@ export default function Records() {
                 </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
-                  <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                  <Text className="text-theme-red text-xl">View More</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
               </Cards>
 
-              {/* CARDS RIWAYAT HR REALTIME */}
+              {/* CARDS REALTIME HR HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">RIWAYAT HR REALTIME</Text>
+                <Text className="text-normal font-bold">HR REALTIME HISTORY</Text>
                 {latestHRRecords.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -401,7 +401,7 @@ export default function Records() {
 
                             return (
                               <View key={`rt-item-${itemIdx}`} className="flex-row justify-between pl-2 items-center mb-1">
-                                <Text className="text-gray-600 flex-1">Pukul {timeFormatted} WIB:</Text>
+                                <Text className="text-gray-600 flex-1">At {timeFormatted} WIB:</Text>
                                 <Text className="font-semibold">{bpmValue} BPM</Text>
                               </View>
                             );
@@ -412,7 +412,7 @@ export default function Records() {
                 </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_realtime")}>
-                  <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
+                  <Text className="text-theme-red text-xl">View More</Text>
                   <MaterialDesignIcons name="chevron-right" className="mr-[-10]" size={30} color="#DB3546" />
                 </Pressable>
               </Cards>

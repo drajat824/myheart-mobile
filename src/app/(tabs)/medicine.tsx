@@ -79,10 +79,10 @@ const formatDisplayTime = (dateVal: string): string => {
 
 const formatMealRelationLabel = (mealRelation?: string): string => {
   const labels: Record<string, string> = {
-    before_meal: "Sebelum Makan",
-    with_meal: "Saat Makan",
-    after_meal: "Setelah Makan",
-    any_time: "Kapan Saja",
+    before_meal: "Before Meal",
+    with_meal: "With Meal",
+    after_meal: "After Meal",
+    any_time: "Anytime",
   };
   return mealRelation ? (labels[mealRelation] ?? mealRelation) : "";
 };
@@ -213,8 +213,8 @@ export default function Medicine() {
     <WrapperMain>
       <View className="flex-col pb-8">
         <Header>
-          <Text className="text-title text-white">JADWAL OBAT</Text>
-          <Text className="text-normal font-light text-white">Periksa jadwal pemberian obat, pastikan tidak ada yang terlewat.</Text>
+          <Text className="text-title text-white">MEDICATION SCHEDULE</Text>
+          <Text className="text-normal font-light text-white">Check the medication schedule to make sure nothing is missed.</Text>
         </Header>
 
         <View className="mt-4 flex flex-1 flex-col gap-4">
@@ -233,11 +233,11 @@ export default function Medicine() {
             {isLoading && schedules.length === 0 ? (
               <Cards className="items-center justify-center py-10">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="mt-4 font-medium text-gray-500">Memuat data jadwal obat...</Text>
+                <Text className="mt-4 font-medium text-gray-500">Loading medication schedule...</Text>
               </Cards>
             ) : schedules.length === 0 ? (
               <Cards className="items-center justify-center py-6">
-                <Text className="font-medium text-gray-500">Tidak ada jadwal obat pada tanggal atau rentang ini.</Text>
+                <Text className="font-medium text-gray-500">No medication schedules for this date or range.</Text>
               </Cards>
             ) : (
               schedules.map((item) => {
@@ -257,9 +257,9 @@ export default function Medicine() {
                 return (
                   <Cards color={cardColor} key={item.id} className="mb-3 flex flex-col gap-2">
                     <Text className={`text-normal font-bold ${textColorClass}`}>
-                      {isTaken && "SUDAH MINUM"}
-                      {isMissed && "BELUM MINUM"}
-                      {isPending && "HARI INI"}
+                      {isTaken && "TAKEN"}
+                      {isMissed && "MISSED"}
+                      {isPending && "TODAY"}
                     </Text>
 
                     <Text className={`text-normal ${textColorClass}`}>
@@ -273,20 +273,20 @@ export default function Medicine() {
                       <View className={`border-1 flex-col gap-1 rounded-xl p-3 ${isPending ? "bg-gray-50" : "bg-white"}`}>
                         <View className="flex-row items-center gap-3">
                           <View className="h-2 w-2 rounded-full bg-black" />
-                          <Text className="text-xl font-bold text-black">{medicationName || "Obat Tidak Diketahui"}</Text>
+                          <Text className="text-xl font-bold text-black">{medicationName || "Unknown Medication"}</Text>
                         </View>
                         <View className="ml-5 flex-col">
-                          {dosageText ? <Text className="text-sm text-gray-700">Dosis: {dosageText}</Text> : null}
-                          {item.route ? <Text className="text-sm text-gray-700">Rute: {item.route}</Text> : null}
+                          {dosageText ? <Text className="text-sm text-gray-700">Dosage: {dosageText}</Text> : null}
+                          {item.route ? <Text className="text-sm text-gray-700">Route: {item.route}</Text> : null}
                         </View>
                       </View>
                     </View>
 
                     {!isPending && (
                       <View className="flex flex-row items-center justify-between pt-5">
-                        <Text className={`text-normal font-semibold ${textColorClass}`}>UBAH STATUS</Text>
+                        <Text className={`text-normal font-semibold ${textColorClass}`}>CHANGE STATUS</Text>
                         <Button style={{ borderWidth: 1.5 }} buttonColor={isTaken ? "#DB3546" : "#38C172"} borderColor="#ffffff" disabled={updatingId === item.id} onPress={() => handleUpdateStatus(item.id, item.status)}>
-                          {updatingId === item.id ? <ActivityIndicator size="small" color="#ffffff" /> : <Text className="font-bold text-white">{isTaken ? "BELUM" : "SUDAH"}</Text>}
+                          {updatingId === item.id ? <ActivityIndicator size="small" color="#ffffff" /> : <Text className="font-bold text-md text-white">{isTaken ? "MISSED" : "TAKEN"}</Text>}
                         </Button>
                       </View>
                     )}

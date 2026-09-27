@@ -73,7 +73,7 @@ const formatDisplayDate = (dateKey: string): string => {
   });
 
   if (isDateToday(dateKey)) {
-    return `Hari ini, ${formattedDate}`;
+    return `Today, ${formattedDate}`;
   }
 
   return formattedDate;
@@ -344,7 +344,7 @@ export default function RecordsHRRealtime() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT REALTIME HR" />
+        <RouterSub title="HEALTH RECORDS" subTitle="HR REALTIME HISTORY" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
@@ -362,11 +362,11 @@ export default function RecordsHRRealtime() {
             {isLoading && sortedGroupedEntries.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="text-gray-500 font-medium mt-4">Memuat data...</Text>
+                <Text className="text-gray-500 font-medium mt-4">Loading data...</Text>
               </Cards>
             ) : sortedGroupedEntries.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada data riwayat heart rate pada tanggal ini.</Text>
+                <Text className="text-gray-500 font-medium">No heart rate history data available for this date.</Text>
               </Cards>
             ) : (
               <>
@@ -407,10 +407,9 @@ export default function RecordsHRRealtime() {
                   );
                 })}
 
-                {/* Tombol Load More */}
                 {hasMore && (
                   <TouchableOpacity onPress={loadMore} disabled={isLoadingMore} className="bg-white p-4 rounded-xl shadow-sm items-center justify-center mb-6 mt-2">
-                    {isLoadingMore ? <ActivityIndicator size="small" color="#017BFE" /> : <Text className="text-[#017BFE] font-bold text-lg">Muat Lebih Banyak</Text>}
+                    {isLoadingMore ? <ActivityIndicator size="small" color="#017BFE" /> : <Text className="text-[#017BFE] font-bold text-lg">Load More</Text>}
                   </TouchableOpacity>
                 )}
               </>

@@ -109,7 +109,7 @@ export default function RecordsDemographic() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT DEMOGRAFI" />
+        <RouterSub title="MEDICAL RECORDS" subTitle="DEMOGRAPHIC HISTORY" />
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => fetchRecords({ isPullRefresh: true })} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
@@ -126,11 +126,11 @@ export default function RecordsDemographic() {
             {isLoading && records.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="text-gray-500 font-medium mt-4">Memuat data...</Text>
+                <Text className="text-gray-500 font-medium mt-4">Loading data...</Text>
               </Cards>
             ) : records.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada data demografi pada tanggal ini.</Text>
+                <Text className="text-gray-500 font-medium">No demographic data for this date.</Text>
               </Cards>
             ) : (
               records.map((item, index) => {
@@ -142,26 +142,26 @@ export default function RecordsDemographic() {
                   <Cards key={item.id || index} className={`flex flex-col gap-2 mb-3`} color={isItemToday ? "#FFFFFF" : "#FFDD78"}>
                     <Text className="text-normal font-bold border-b border-gray-100 pb-2">
                       {isItemToday
-                        ? `Hari ini, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                        ? `Today, ${new Date(dateStringToUse || "").toLocaleDateString("en-GB", {
                             dateStyle: "long",
                           })}`
-                        : new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                        : new Date(dateStringToUse || "").toLocaleDateString("en-GB", {
                             dateStyle: "long",
                           })}
                     </Text>
                     <View className="flex-col gap-2 mt-2">
                       <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Umur / Gender:</Text>
+                        <Text className="text-gray-600">Age / Gender:</Text>
                         <Text className="font-semibold">
-                          {item.age} Thn / {item.gender}
+                          {item.age} yrs / {item.gender}
                         </Text>
                       </View>
                       <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Berat Badan:</Text>
+                        <Text className="text-gray-600">Weight:</Text>
                         <Text className="font-semibold">{item.weight} kg</Text>
                       </View>
                       <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Tinggi Badan:</Text>
+                        <Text className="text-gray-600">Height:</Text>
                         <Text className="font-semibold">{item.height} cm</Text>
                       </View>
                       <View className="flex-row justify-between">
@@ -169,11 +169,11 @@ export default function RecordsDemographic() {
                         <Text className="font-semibold">{item.bmi}</Text>
                       </View>
                       <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Gula Darah:</Text>
+                        <Text className="text-gray-600">Blood Sugar:</Text>
                         <Text className="font-semibold">{item.blood_sugar} mg/dL</Text>
                       </View>
                       <View className="flex-row justify-between">
-                        <Text className="text-gray-600">Kolesterol:</Text>
+                        <Text className="text-gray-600">Cholesterol:</Text>
                         <Text className="font-semibold">{item.cholesterol} mg/dL</Text>
                       </View>
                     </View>

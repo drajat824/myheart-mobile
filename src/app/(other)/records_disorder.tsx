@@ -43,14 +43,14 @@ const formatDisplayDate = (dateKey: string): string => {
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
 
-  const formattedDate = parsedDate.toLocaleDateString("id-ID", {
+  const formattedDate = parsedDate.toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
   });
 
   if (isDateToday(dateKey)) {
-    return `Hari ini, ${formattedDate}`;
+    return `Today, ${formattedDate}`;
   }
 
   return formattedDate;
@@ -265,7 +265,7 @@ export default function RecordsDisorder() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="RIWAYAT GANGGUAN" />
+        <RouterSub title="HEALTH RECORDS" subTitle="HR DISORDER HISTORY" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
@@ -283,11 +283,11 @@ export default function RecordsDisorder() {
             {isLoading && sortedGroupedEntries.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="text-gray-500 font-medium mt-4">Memuat data riwayat gangguan...</Text>
+                <Text className="text-gray-500 font-medium mt-4">Loading disorder history data...</Text>
               </Cards>
             ) : sortedGroupedEntries.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada riwayat gangguan pada tanggal ini.</Text>
+                <Text className="text-gray-500 font-medium">No disorder history for this date.</Text>
               </Cards>
             ) : (
               sortedGroupedEntries.map(({ date, data }) => {
@@ -305,7 +305,7 @@ export default function RecordsDisorder() {
                               .toLocaleTimeString("id-ID", {
                                 hour: "2-digit",
                                 minute: "2-digit",
-                                second: "2-digit", // Tambahkan baris ini
+                                second: "2-digit",
                               })
                               .replace(/\./g, ":")
                           : "--:--";
@@ -315,7 +315,7 @@ export default function RecordsDisorder() {
                             <View className="w-2 h-2 rounded-full bg-black mt-2" />
                             <View className="flex flex-col gap-2 item-start self-start flex-1">
                               <Text className="text-xl capitalize">{item.issue_type}:</Text>
-                              <Text className="text-lg font-light">{timeFormatted} WIB</Text>
+                              <Text className="text-lg font-light">{timeFormatted} local time</Text>
                             </View>
                             <Text className="text-xl font-semibold">{item.bpm_recorded} BPM</Text>
                           </View>

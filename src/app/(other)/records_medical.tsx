@@ -36,7 +36,6 @@ export default function RecordsMedical() {
   const [selectedDate, setSelectedDate] = useState<Date>(new Date());
   const [selectedRange, setSelectedRange] = useState<{ start: Date; end: Date } | null>(null);
 
-  const [expandedPdfId, setExpandedPdfId] = useState<number | null>(null);
   const rotateAnim = useRef(new Animated.Value(0)).current;
 
   useEffect(() => {
@@ -137,7 +136,7 @@ export default function RecordsMedical() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="REKAM MEDIS" subTitle="MEDICAL RECORDS" />
+        <RouterSub title="MEDICAL RECORDS" subTitle="MEDICAL RECORDS" />
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => fetchRecords({ isPullRefresh: true })} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
@@ -154,11 +153,11 @@ export default function RecordsMedical() {
             {isLoading && records.length === 0 ? (
               <Cards className="py-10 items-center justify-center">
                 <ActivityIndicator size="large" color="#DB3546" />
-                <Text className="text-gray-500 font-medium mt-4">Memuat rekam medis...</Text>
+                <Text className="text-gray-500 font-medium mt-4">Loading medical records...</Text>
               </Cards>
             ) : records.length === 0 ? (
               <Cards className="py-6 items-center justify-center">
-                <Text className="text-gray-500 font-medium">Tidak ada rekam medis tersedia.</Text>
+                <Text className="text-gray-500 font-medium">No medical records available.</Text>
               </Cards>
             ) : (
               records.map((item, index) => {
@@ -175,7 +174,7 @@ export default function RecordsMedical() {
                     <View className="flex-row justify-between items-center border-b border-gray-100 pb-2">
                       <Text className="text-normal font-bold border-gray-100 pb-2">
                         {isItemToday
-                          ? `Hari ini, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                          ? `Today, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
                               dateStyle: "long",
                             })}`
                           : new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
@@ -190,10 +189,10 @@ export default function RecordsMedical() {
                         <Text className="text-gray-600">Lab Result:</Text>
                         {labResultUrl ? (
                           <TouchableOpacity onPress={() => handleOpenDoc(labResultUrl)}>
-                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                            <Text className="font-semibold text-theme-green underline">View Document</Text>
                           </TouchableOpacity>
                         ) : (
-                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                          <Text className="font-semibold text-gray-400">Not Available</Text>
                         )}
                       </View>
 
@@ -201,10 +200,10 @@ export default function RecordsMedical() {
                         <Text className="text-gray-600">Medical Images:</Text>
                         {medicalImageUrl ? (
                           <TouchableOpacity onPress={() => handleOpenDoc(medicalImageUrl)}>
-                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                            <Text className="font-semibold text-theme-green underline">View Document</Text>
                           </TouchableOpacity>
                         ) : (
-                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                          <Text className="font-semibold text-gray-400">Not Available</Text>
                         )}
                       </View>
 
@@ -212,10 +211,10 @@ export default function RecordsMedical() {
                         <Text className="text-gray-600">Diagnosis:</Text>
                         {diagnosisUrl ? (
                           <TouchableOpacity onPress={() => handleOpenDoc(diagnosisUrl)}>
-                            <Text className="font-semibold text-theme-green underline">Lihat Dokumen</Text>
+                            <Text className="font-semibold text-theme-green underline">View Document</Text>
                           </TouchableOpacity>
                         ) : (
-                          <Text className="font-semibold text-gray-400">Tidak Tersedia</Text>
+                          <Text className="font-semibold text-gray-400">Not Available</Text>
                         )}
                       </View>
                     </View>
