@@ -1,11 +1,14 @@
 // login.tsx
+import AsyncStorage from "@react-native-async-storage/async-storage";
 import MaterialDesignIcons from "@react-native-vector-icons/material-design-icons";
+import * as Notifications from "expo-notifications";
 import { useRouter } from "expo-router";
 import { useState } from "react";
 import { KeyboardAvoidingView, Platform, ScrollView, Text, View } from "react-native";
 import { TextInput } from "react-native-paper";
 import { Button, Cards, CustomTextInput, Loading, Modal, WrapperAuth } from "../../component"; // <-- Tambahkan Loading di import component
 import { useModal } from "../../context";
+import { apiService } from "../../utils/apiService";
 
 export default function Login() {
   const router = useRouter();
@@ -24,65 +27,61 @@ export default function Login() {
     openModal("login-alert");
   };
 
-  // const handleLogin = async () => {
-  //   if (!email || !password) {
-  //     showAlert("Perhatian", "Email dan kata sandi wajib diisi!");
-  //     return;
-  //   }
+  const handleLogin = async () => {
+    if (!email || !password) {
+      showAlert("Perhatian", "Email dan kata sandi wajib diisi!");
+      return;
+    }
 
-  //   setIsLoading(true);
-  //   try {
-  //     let pushToken = null;
-  //     try {
-  //       const { status } = await Notifications.getPermissionsAsync();
-  //       if (status === "granted") {
-  //         const tokenData = await Notifications.getExpoPushTokenAsync();
-  //         pushToken = tokenData.data;
-  //       } else {
-  //         const { status: newStatus } = await Notifications.requestPermissionsAsync();
-  //         if (newStatus === "granted") {
-  //           const tokenData = await Notifications.getExpoPushTokenAsync();
-  //           pushToken = tokenData.data;
-  //         }
-  //       }
-  //     } catch (tokenError) {
-  //       console.warn("Gagal mendapatkan push token:", tokenError);
-  //     }
+    setIsLoading(true);
+    try {
+      let pushToken = null;
+      try {
+        const { status } = await Notifications.getPermissionsAsync();
+        if (status === "granted") {
+          const tokenData = await Notifications.getExpoPushTokenAsync();
+          pushToken = tokenData.data;
+        } else {
+          const { status: newStatus } = await Notifications.requestPermissionsAsync();
+          if (newStatus === "granted") {
+            const tokenData = await Notifications.getExpoPushTokenAsync();
+            pushToken = tokenData.data;
+          }
+        }
+      } catch (tokenError) {
+        console.warn("Gagal mendapatkan push token:", tokenError);
+      }
 
-  //     // Membuat Promise timeout 10 detik
-  //     const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 10000));
+      // Membuat Promise timeout 10 detik
+      const timeoutPromise = new Promise((_, reject) => setTimeout(() => reject(new Error("Request timeout")), 10000));
 
-  //     // Membungkus apiService.post dengan Promise.race untuk menerapkan timeout 10 detik
-  //     const loginPromise = apiService.post("/auth/login", {
-  //       email,
-  //       password,
-  //       expo_push_token: pushToken,
-  //     });
+      // Membungkus apiService.post dengan Promise.race untuk menerapkan timeout 10 detik
+      const loginPromise = apiService.post("/auth/login", {
+        email,
+        password,
+        expo_push_token: pushToken,
+      });
 
-  //     const response = (await Promise.race([loginPromise, timeoutPromise])) as {
-  //       token?: string;
-  //       user?: Record<string, any>;
-  //     };
+      const response = (await Promise.race([loginPromise, timeoutPromise])) as {
+        token?: string;
+        user?: Record<string, any>;
+      };
 
-  //     if (response?.token) {
-  //       await AsyncStorage.setItem("userToken", response.token);
-  //       await AsyncStorage.setItem("userData", JSON.stringify(response.user ?? {}));
-  //       router.replace("/(tabs)/dashboard"); // Mengarah ke dashboard setelah sukses login
-  //     }
-  //   } catch (error: any) {
-  //     console.error("Login failed:", error);
-  //     if (error.message === "Request timeout") {
-  //       showAlert("Waktu Habis", "Koneksi ke server terlalu lama. Silakan coba lagi.");
-  //     } else {
-  //       showAlert("Gagal Masuk", "Email atau kata sandi yang Anda masukkan salah.");
-  //     }
-  //   } finally {
-  //     setIsLoading(false);
-  //   }
-  // };
-
-  const handleLogin = () => {
-    router.push("/dashboard");
+      if (response?.token) {
+        await AsyncStorage.setItem("userToken", response.token);
+        await AsyncStorage.setItem("userData", JSON.stringify(response.user ?? {}));
+        router.replace("/(tabs)/dashboard"); // Mengarah ke dashboard setelah sukses login
+      }
+    } catch (error: any) {
+      console.error("Login failed:", error);
+      if (error.message === "Request timeout") {
+        showAlert("Waktu Habis", "Koneksi ke server terlalu lama. Silakan coba lagi.");
+      } else {
+        showAlert("Gagal Masuk", "Email atau kata sandi yang Anda masukkan salah.");
+      }
+    } finally {
+      setIsLoading(false);
+    }
   };
 
   return (
