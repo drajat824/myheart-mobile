@@ -15,7 +15,7 @@ const CACHE_KEY_MEDICAL = "@myheartz_medical_cache";
 export type DemographicRecord = {
   id?: number;
   user_id?: number;
-  check_date?: string; // Ditambahkan untuk penyesuaian database baru
+  check_date?: string;
   date_of_birth?: string;
   gender?: string;
   age?: number;
@@ -24,7 +24,7 @@ export type DemographicRecord = {
   bmi?: number;
   blood_sugar?: number;
   cholesterol?: number;
-  created_at?: string; // Dipertahankan untuk fallback data cache lama
+  created_at?: string;
 };
 
 export type MedicalRecord = {
@@ -60,6 +60,34 @@ const parseToDate = (dateVal: string | number | undefined): Date => {
   return new Date(dateVal);
 };
 
+// --- Helper untuk mengelompokkan data berdasarkan tanggal ---
+const groupByDate = <T,>(data: T[], getDateFn: (item: T) => Date) => {
+  const grouped = data.reduce((acc: Record<string, T[]>, item) => {
+    const dateObj = getDateFn(item);
+    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", { dateStyle: "long" }) : "-";
+    if (!acc[dateFormatted]) {
+      acc[dateFormatted] = [];
+    }
+    acc[dateFormatted].push(item);
+    return acc;
+  }, {});
+
+  // Ubah ke array agar urutannya tetap terjaga dari input (karena key object bisa terurut secara acak/alfabet)
+  // Input list sudah diurutkan desc, jadi kita pertahankan urutannya
+  const result: { date: string; items: T[] }[] = [];
+  const addedDates = new Set<string>();
+
+  for (const item of data) {
+    const dateObj = getDateFn(item);
+    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", { dateStyle: "long" }) : "-";
+    if (!addedDates.has(dateFormatted)) {
+      addedDates.add(dateFormatted);
+      result.push({ date: dateFormatted, items: grouped[dateFormatted] });
+    }
+  }
+  return result;
+};
+
 export default function Records() {
   const router = useRouter();
 
@@ -67,19 +95,10 @@ export default function Records() {
   const [activeTab, setActiveTab] = useState<TabMenu>("REALTIME");
 
   const [latestHRRecords, setLatestHRRecords] = useState<AggregateRecord[]>([]);
-  const [latesetHRDateText, setLatesetHRDateText] = useState<string>("");
-
   const [latestHRAggregation, setLatestHRAggregation] = useState<AggregateRecord[]>([]);
-  const [latestHRAggregationDateText, setLatestHRAggregationDateText] = useState<string>("");
-
   const [latestIssueRecords, setLatestIssueRecords] = useState<HeartIssueRecord[]>([]);
-  const [latestIssueDateText, setLatestIssueDateText] = useState<string>("");
-
   const [latestDemographics, setLatestDemographics] = useState<DemographicRecord[]>([]);
-  const [latestDemographicDateText, setLatestDemographicDateText] = useState<string>("");
-
   const [latestMedicals, setLatestMedicals] = useState<MedicalRecord[]>([]);
-  const [latestMedicalDateText, setLatestMedicalDateText] = useState<string>("");
 
   const loadCachedHR = useCallback(async () => {
     try {
@@ -94,8 +113,6 @@ export default function Records() {
           const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
           setLatestHRAggregation(preview);
-          const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
-          if (!isNaN(topDate.getTime())) setLatestHRAggregationDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
@@ -105,8 +122,6 @@ export default function Records() {
           const sorted = [...parsedData].sort((a, b) => parseToDate(b.start_time || b.startTime).getTime() - parseToDate(a.start_time || a.startTime).getTime());
           const preview = sorted.slice(0, 3);
           setLatestHRRecords(preview);
-          const topDate = parseToDate(preview[0].start_time || preview[0].startTime);
-          if (!isNaN(topDate.getTime())) setLatesetHRDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
@@ -116,21 +131,17 @@ export default function Records() {
           const sortedIssues = [...parsedIssues].sort((a, b) => parseToDate(b.recorded_at).getTime() - parseToDate(a.recorded_at).getTime());
           const previewIssues = sortedIssues.slice(0, 3);
           setLatestIssueRecords(previewIssues);
-          const topIssueDate = parseToDate(previewIssues[0].recorded_at);
-          if (!isNaN(topIssueDate.getTime())) setLatestIssueDateText(topIssueDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
-      // 2. Load Demographic Cache (Menggunakan check_date)
+      // 2. Load Demographic Cache
       const cachedDemographic = await AsyncStorage.getItem(CACHE_KEY_DEMOGRAPHIC);
       if (cachedDemographic) {
         const parsedDemographic: DemographicRecord[] = JSON.parse(cachedDemographic);
         if (Array.isArray(parsedDemographic) && parsedDemographic.length > 0) {
           const sorted = [...parsedDemographic].sort((a, b) => parseToDate(b.check_date || b.created_at).getTime() - parseToDate(a.check_date || a.created_at).getTime());
-          const preview = sorted.slice(0, 2);
+          const preview = sorted.slice(0, 3);
           setLatestDemographics(preview);
-          const topDate = parseToDate(preview[0].check_date || preview[0].created_at);
-          if (!isNaN(topDate.getTime())) setLatestDemographicDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
 
@@ -140,10 +151,8 @@ export default function Records() {
         const parsedMedical: MedicalRecord[] = JSON.parse(cachedMedical);
         if (Array.isArray(parsedMedical) && parsedMedical.length > 0) {
           const sorted = [...parsedMedical].sort((a, b) => parseToDate(b.check_date || b.created_at).getTime() - parseToDate(a.check_date || a.created_at).getTime());
-          const preview = sorted.slice(0, 2);
+          const preview = sorted.slice(0, 3);
           setLatestMedicals(preview);
-          const topDate = parseToDate(preview[0].check_date || preview[0].created_at);
-          if (!isNaN(topDate.getTime())) setLatestMedicalDateText(topDate.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long", year: "numeric" }));
         }
       }
     } catch (error) {
@@ -156,6 +165,9 @@ export default function Records() {
       loadCachedHR();
     }, [loadCachedHR]),
   );
+
+  const renderDescriptionText = () => <Text className="text-sm text-gray-500 mb-1">Showing the 3 most recent records. Open the page to update and view more data.</Text>;
+  const renderNoData = () => <Text className="text-gray-400 italic">No data has been saved yet. Open the page to update your data.</Text>;
 
   return (
     <WrapperMain>
@@ -180,28 +192,44 @@ export default function Records() {
 
           {activeTab == "DEMOGRAPHIC" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">DATA DEMOGRAFI TERAKHIR</Text>
+              <Text className="text-normal font-bold">DEMOGRAPHIC DATA</Text>
+              {latestDemographics.length > 0 && renderDescriptionText()}
 
-              {/* <Text className="text-normal text-gray-500">{latestDemographicDateText || "Belum ada riwayat"}</Text>
               <View className="flex-col gap-3 mt-2">
-                {latestDemographics.map((item, index) => (
-                  <View key={`demo-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
-                    <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
-                    <View className="flex-row justify-between pl-2">
-                      <Text className="text-gray-600">BB / TB:</Text>
-                      <Text className="font-semibold">
-                        {item.weight} kg / {item.height} cm
-                      </Text>
-                    </View>
-                    <View className="flex-row justify-between pl-2">
-                      <Text className="text-gray-600">BMI / Gula Darah:</Text>
-                      <Text className="font-semibold">
-                        {item.bmi} / {item.blood_sugar} mg/dL
-                      </Text>
-                    </View>
-                  </View>
-                ))}
-              </View> */}
+                {latestDemographics.length > 0
+                  ? groupByDate(latestDemographics, (item) => parseToDate(item.check_date || item.created_at)).map((group, groupIdx) => (
+                      <View key={`demo-group-${groupIdx}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                        <Text className="font-semibold text-gray-800 mb-1">{group.date}</Text>
+
+                        {group.items.map((item, itemIdx) => {
+                          const itemDate = parseToDate(item.check_date || item.created_at);
+                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
+
+                          return (
+                            <View key={`demo-item-${itemIdx}`} className="mb-2">
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">Pukul:</Text>
+                                <Text className="font-semibold">{timeFormatted} WIB</Text>
+                              </View>
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">BB / TB:</Text>
+                                <Text className="font-semibold">
+                                  {item.weight} kg / {item.height} cm
+                                </Text>
+                              </View>
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">BMI / Gula Darah:</Text>
+                                <Text className="font-semibold">
+                                  {item.bmi} / {item.blood_sugar} mg/dL
+                                </Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))
+                  : renderNoData()}
+              </View>
 
               <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_demographic")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
@@ -212,28 +240,44 @@ export default function Records() {
 
           {activeTab == "MEDICAL" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">REKAM MEDIS TERAKHIR</Text>
+              <Text className="text-normal font-bold">MEDICAL RECORDS DATA</Text>
+              {latestMedicals.length > 0 && renderDescriptionText()}
 
-              {/* <Text className="text-normal text-gray-500">{latestMedicalDateText || "Belum ada riwayat"}</Text> */}
-              {/* <View className="flex-col gap-3 mt-2">
-                {latestMedicals.map((item, index) => (
-                  <View key={`med-${index}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
-                    <Text className="font-semibold text-gray-800 mb-1">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
-                    <View className="flex-row justify-between pl-2">
-                      <Text className="text-gray-600">Lab Result:</Text>
-                      <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
-                    </View>
-                    <View className="flex-row justify-between pl-2">
-                      <Text className="text-gray-600">Medical Images:</Text>
-                      <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
-                    </View>
-                    <View className="flex-row justify-between pl-2">
-                      <Text className="text-gray-600">Diagnosis:</Text>
-                      <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
-                    </View>
-                  </View>
-                ))}
-              </View> */}
+              <View className="flex-col gap-3 mt-2">
+                {latestMedicals.length > 0
+                  ? groupByDate(latestMedicals, (item) => parseToDate(item.check_date || item.created_at)).map((group, groupIdx) => (
+                      <View key={`med-group-${groupIdx}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                        <Text className="font-semibold text-gray-800 mb-1">{group.date}</Text>
+
+                        {group.items.map((item, itemIdx) => {
+                          const itemDate = parseToDate(item.check_date || item.created_at);
+                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
+
+                          return (
+                            <View key={`med-item-${itemIdx}`} className="mb-2">
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">Pukul:</Text>
+                                <Text className="font-semibold">{timeFormatted} WIB</Text>
+                              </View>
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">Lab Result:</Text>
+                                <Text className="font-semibold">{item.lab_result ? "Tersedia" : "Tidak Tersedia"}</Text>
+                              </View>
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">Medical Images:</Text>
+                                <Text className="font-semibold">{item.medical_image ? "Tersedia" : "Tidak Tersedia"}</Text>
+                              </View>
+                              <View className="flex-row justify-between pl-2">
+                                <Text className="text-gray-600">Diagnosis:</Text>
+                                <Text className="font-semibold">{item.diagnosis ? "Tersedia" : "Tidak Tersedia"}</Text>
+                              </View>
+                            </View>
+                          );
+                        })}
+                      </View>
+                    ))
+                  : renderNoData()}
+              </View>
 
               <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_medical")}>
                 <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
@@ -242,37 +286,42 @@ export default function Records() {
             </Cards>
           )}
 
-          {/* CARDS RIWAYAT GANGGUAN & HR */}
           {activeTab == "REALTIME" && (
             <View className="flex flex-col gap-4">
+              {/* CARDS RIWAYAT GANGGUAN JANTUNG */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT GANGGUAN JANTUNG</Text>
-                {/* <Text className="text-normal text-gray-500">{latestIssueDateText || "Belum ada riwayat"}</Text> */}
+                {latestIssueRecords.length > 0 && renderDescriptionText()}
 
-                {/* <View className="flex-col gap-3 mt-2">
-                  {latestIssueRecords.length > 0 ? (
-                    latestIssueRecords.map((item, index) => {
-                      const itemDate = parseToDate(item.recorded_at);
-                      const timeFormatted = !isNaN(itemDate.getTime())
-                        ? itemDate.toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit", // Tambahkan baris ini
-                          }).replace(/\./g, ":")
-                        : "--:--";
+                <View className="flex-col gap-3 mt-2">
+                  {latestIssueRecords.length > 0
+                    ? groupByDate(latestIssueRecords, (item) => parseToDate(item.recorded_at)).map((group, groupIdx) => (
+                        <View key={`issue-group-${groupIdx}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                          <Text className="font-semibold text-gray-800 mb-1">{group.date}</Text>
 
-                      return (
-                        <View key={`${item.recorded_at}-${index}`} className="flex-row items-center gap-4 justify-between">
-                          <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl capitalize flex-1">{item.issue_type}:</Text>
-                          <Text className="text-xl font-semibold">{timeFormatted} WIB</Text>
+                          {group.items.map((item, itemIdx) => {
+                            const itemDate = parseToDate(item.recorded_at);
+                            const timeFormatted = !isNaN(itemDate.getTime())
+                              ? itemDate
+                                  .toLocaleTimeString("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })
+                                  .replace(/\./g, ":")
+                              : "--:--:--";
+
+                            return (
+                              <View key={`issue-item-${itemIdx}`} className="flex-row justify-between pl-2 items-center mb-1">
+                                <Text className="text-gray-600 capitalize flex-1">{item.issue_type}:</Text>
+                                <Text className="font-semibold">{timeFormatted} WIB</Text>
+                              </View>
+                            );
+                          })}
                         </View>
-                      );
-                    })
-                  ) : (
-                    <Text className="text-gray-400 italic">Belum ada gangguan tersimpan</Text>
-                  )}
-                </View> */}
+                      ))
+                    : renderNoData()}
+                </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_disorder")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
@@ -283,35 +332,40 @@ export default function Records() {
               {/* CARDS RIWAYAT HR AGREGASI */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT AGREGASI HR</Text>
-                {/* <Text className="text-normal text-gray-500">{latestHRAggregationDateText || "Belum ada riwayat"}</Text> */}
+                {latestHRAggregation.length > 0 && renderDescriptionText()}
 
-                {/* <View className="flex-col gap-3 mt-2">
-                  {latestHRAggregation.length > 0 ? (
-                    latestHRAggregation.map((item, index) => {
-                      const rawTime = item.start_time || item.startTime;
-                      const itemDate = parseToDate(rawTime);
-                      const bpmValue = item.bpm ?? item.averageHR ?? 0;
+                <View className="flex-col gap-3 mt-2">
+                  {latestHRAggregation.length > 0
+                    ? groupByDate(latestHRAggregation, (item) => parseToDate(item.start_time || item.startTime)).map((group, groupIdx) => (
+                        <View key={`agg-group-${groupIdx}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                          <Text className="font-semibold text-gray-800 mb-1">{group.date}</Text>
 
-                      const timeFormatted = !isNaN(itemDate.getTime())
-                        ? itemDate.toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit", // Tambahkan baris ini
-                          }).replace(/\./g, ":")
-                        : "--:--";
+                          {group.items.map((item, itemIdx) => {
+                            const rawTime = item.start_time || item.startTime;
+                            const itemDate = parseToDate(rawTime);
+                            const bpmValue = item.bpm ?? item.averageHR ?? 0;
 
-                      return (
-                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4 justify-between">
-                          <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl flex-1">{timeFormatted} WIB:</Text>
-                          <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
+                            const timeFormatted = !isNaN(itemDate.getTime())
+                              ? itemDate
+                                  .toLocaleTimeString("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })
+                                  .replace(/\./g, ":")
+                              : "--:--:--";
+
+                            return (
+                              <View key={`agg-item-${itemIdx}`} className="flex-row justify-between pl-2 items-center mb-1">
+                                <Text className="text-gray-600 flex-1">Pukul {timeFormatted} WIB:</Text>
+                                <Text className="font-semibold">{bpmValue} BPM</Text>
+                              </View>
+                            );
+                          })}
                         </View>
-                      );
-                    })
-                  ) : (
-                    <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
-                  )}
-                </View> */}
+                      ))
+                    : renderNoData()}
+                </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_aggregation")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
@@ -322,35 +376,40 @@ export default function Records() {
               {/* CARDS RIWAYAT HR REALTIME */}
               <Cards className="flex flex-col gap-2">
                 <Text className="text-normal font-bold">RIWAYAT HR REALTIME</Text>
-                {/* <Text className="text-normal text-gray-500">{latesetHRDateText || "Belum ada riwayat"}</Text>
+                {latestHRRecords.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
-                  {latestHRRecords.length > 0 ? (
-                    latestHRRecords.map((item, index) => {
-                      const rawTime = item.start_time || item.startTime;
-                      const itemDate = parseToDate(rawTime);
-                      const bpmValue = item.bpm ?? item.averageHR ?? 0;
+                  {latestHRRecords.length > 0
+                    ? groupByDate(latestHRRecords, (item) => parseToDate(item.start_time || item.startTime)).map((group, groupIdx) => (
+                        <View key={`rt-group-${groupIdx}`} className="flex-col gap-1 border-b border-gray-200 pb-3">
+                          <Text className="font-semibold text-gray-800 mb-1">{group.date}</Text>
 
-                      const timeFormatted = !isNaN(itemDate.getTime())
-                        ? itemDate.toLocaleTimeString("id-ID", {
-                            hour: "2-digit",
-                            minute: "2-digit",
-                            second: "2-digit", // Tambahkan baris ini
-                          }).replace(/\./g, ":")
-                        : "--:--";
+                          {group.items.map((item, itemIdx) => {
+                            const rawTime = item.start_time || item.startTime;
+                            const itemDate = parseToDate(rawTime);
+                            const bpmValue = item.bpm ?? item.averageHR ?? 0;
 
-                      return (
-                        <View key={`${rawTime}-${index}`} className="flex-row items-center gap-4 justify-between">
-                          <View className="w-2 h-2 rounded-full bg-black" />
-                          <Text className="text-xl flex-1">{timeFormatted} WIB:</Text>
-                          <Text className="text-xl font-semibold">{bpmValue} BPM</Text>
+                            const timeFormatted = !isNaN(itemDate.getTime())
+                              ? itemDate
+                                  .toLocaleTimeString("id-ID", {
+                                    hour: "2-digit",
+                                    minute: "2-digit",
+                                    second: "2-digit",
+                                  })
+                                  .replace(/\./g, ":")
+                              : "--:--:--";
+
+                            return (
+                              <View key={`rt-item-${itemIdx}`} className="flex-row justify-between pl-2 items-center mb-1">
+                                <Text className="text-gray-600 flex-1">Pukul {timeFormatted} WIB:</Text>
+                                <Text className="font-semibold">{bpmValue} BPM</Text>
+                              </View>
+                            );
+                          })}
                         </View>
-                      );
-                    })
-                  ) : (
-                    <Text className="text-gray-400 italic">Belum ada data tersimpan</Text>
-                  )}
-                </View> */}
+                      ))
+                    : renderNoData()}
+                </View>
 
                 <Pressable className="flex flex-row items-center active:opacity-40 pt-4" onPress={() => router.push("/records_hr_realtime")}>
                   <Text className="text-theme-red text-xl">Lihat Selengkapnya</Text>
