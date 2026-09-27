@@ -299,11 +299,13 @@ export default function RecordsDisorder() {
                       {data.map((item, index) => {
                         const itemDate = parseToDate(item.recorded_at);
                         const timeFormatted = !isNaN(itemDate.getTime())
-                          ? itemDate.toLocaleTimeString("id-ID", {
-                              hour: "2-digit",
-                              minute: "2-digit",
-                              second: "2-digit", // Tambahkan baris ini
-                            })
+                          ? itemDate
+                              .toLocaleTimeString("id-ID", {
+                                hour: "2-digit",
+                                minute: "2-digit",
+                                second: "2-digit", // Tambahkan baris ini
+                              })
+                              .replace(/\./g, ":")
                           : "--:--";
 
                         return (
