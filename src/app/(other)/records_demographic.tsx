@@ -16,6 +16,15 @@ const formatDateToParam = (date: Date): string => {
   return `${year}-${month}-${day}`;
 };
 
+// Fungsi bantuan untuk mengecek apakah tanggal data adalah hari ini
+const checkIsToday = (dateValue?: string) => {
+  if (!dateValue) return false;
+  const itemDate = new Date(dateValue);
+  const today = new Date();
+
+  return itemDate.getDate() === today.getDate() && itemDate.getMonth() === today.getMonth() && itemDate.getFullYear() === today.getFullYear();
+};
+
 export default function RecordsDemographic() {
   const [records, setRecords] = useState<DemographicRecord[]>([]);
   const [refreshing, setRefreshing] = useState(false);
@@ -124,40 +133,45 @@ export default function RecordsDemographic() {
                 <Text className="text-gray-500 font-medium">Tidak ada data demografi pada tanggal ini.</Text>
               </Cards>
             ) : (
-              records.map((item, index) => (
-                <Cards key={item.id || index} className="flex flex-col gap-2 mb-3">
-                  {/* Gunakan item.check_date dengan fallback ke created_at jika cache lama masih terbaca */}
-                  <Text className="text-normal font-bold border-b border-gray-100 pb-2">{new Date(item.check_date || item.created_at || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
-                  <View className="flex-col gap-2 mt-2">
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">Umur / Gender:</Text>
-                      <Text className="font-semibold">
-                        {item.age} Thn / {item.gender}
-                      </Text>
+              records.map((item, index) => {
+                // Evaluasi apakah tanggal pada item adalah hari ini
+                const dateStringToUse = item.check_date;
+                const isItemToday = checkIsToday(dateStringToUse);
+
+                return (
+                  <Cards key={item.id || index} className={`flex flex-col gap-2 mb-3`} color={isItemToday ? "#FFFFFF" : "#FFDD78"}>
+                    <Text className="text-normal font-bold border-b border-gray-100 pb-2">{new Date(dateStringToUse || "").toLocaleDateString("id-ID", { dateStyle: "long" })}</Text>
+                    <View className="flex-col gap-2 mt-2">
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">Umur / Gender:</Text>
+                        <Text className="font-semibold">
+                          {item.age} Thn / {item.gender}
+                        </Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">Berat Badan:</Text>
+                        <Text className="font-semibold">{item.weight} kg</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">Tinggi Badan:</Text>
+                        <Text className="font-semibold">{item.height} cm</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">BMI:</Text>
+                        <Text className="font-semibold">{item.bmi}</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">Gula Darah:</Text>
+                        <Text className="font-semibold">{item.blood_sugar} mg/dL</Text>
+                      </View>
+                      <View className="flex-row justify-between">
+                        <Text className="text-gray-600">Kolesterol:</Text>
+                        <Text className="font-semibold">{item.cholesterol} mg/dL</Text>
+                      </View>
                     </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">Berat Badan:</Text>
-                      <Text className="font-semibold">{item.weight} kg</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">Tinggi Badan:</Text>
-                      <Text className="font-semibold">{item.height} cm</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">BMI:</Text>
-                      <Text className="font-semibold">{item.bmi}</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">Gula Darah:</Text>
-                      <Text className="font-semibold">{item.blood_sugar} mg/dL</Text>
-                    </View>
-                    <View className="flex-row justify-between">
-                      <Text className="text-gray-600">Kolesterol:</Text>
-                      <Text className="font-semibold">{item.cholesterol} mg/dL</Text>
-                    </View>
-                  </View>
-                </Cards>
-              ))
+                  </Cards>
+                );
+              })
             )}
           </ScrollView>
         </View>
