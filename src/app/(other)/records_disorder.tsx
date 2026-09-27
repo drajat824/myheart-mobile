@@ -291,8 +291,10 @@ export default function RecordsDisorder() {
               </Cards>
             ) : (
               sortedGroupedEntries.map(({ date, data }) => {
+                const isToday = isDateToday(date);
+
                 return (
-                  <Cards key={date} className="flex flex-col gap-2 mb-3">
+                  <Cards color={isToday ? "#FFFFFF" : "#FFDD78"} key={date} className="flex flex-col gap-2 mb-3">
                     <Text className="text-normal font-bold">{formatDisplayDate(date)}</Text>
 
                     <View className="flex-col gap-3 mt-2">
