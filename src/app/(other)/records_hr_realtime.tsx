@@ -66,7 +66,7 @@ const formatDisplayDate = (dateKey: string): string => {
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
 
-  const formattedDate = parsedDate.toLocaleDateString("id-ID", {
+  const formattedDate = parsedDate.toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -344,7 +344,7 @@ export default function RecordsHRRealtime() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="HEALTH RECORDS" subTitle="HR REALTIME HISTORY" />
+        <RouterSub title="CLINICAL RECORDS" subTitle="HR REALTIME HISTORY" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
@@ -384,7 +384,7 @@ export default function RecordsHRRealtime() {
 
                           const timeFormatted = !isNaN(itemDate.getTime())
                             ? itemDate
-                                .toLocaleTimeString("id-ID", {
+                                .toLocaleTimeString("en-US", {
                                   hour: "2-digit",
                                   minute: "2-digit",
                                   second: "2-digit", // Tambahkan baris ini

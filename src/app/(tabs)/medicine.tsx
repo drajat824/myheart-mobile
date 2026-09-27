@@ -57,7 +57,7 @@ const formatDisplayDate = (dateVal: string): string => {
   const parsedDate = parseToDate(dateVal);
   if (isNaN(parsedDate.getTime())) return dateVal;
 
-  return parsedDate.toLocaleDateString("id-ID", {
+  return parsedDate.toLocaleDateString("en-US", {
     weekday: "long",
     day: "numeric",
     month: "long",
@@ -70,7 +70,7 @@ const formatDisplayTime = (dateVal: string): string => {
   if (isNaN(parsedDate.getTime())) return "--:--";
 
   return (
-    parsedDate.toLocaleTimeString("id-ID", {
+    parsedDate.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
     }) + " WIB"

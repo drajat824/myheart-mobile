@@ -136,7 +136,7 @@ export default function RecordsMedical() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="MEDICAL RECORDS" subTitle="MEDICAL RECORDS" />
+        <RouterSub title="CLINICAL RECORDS" subTitle="MEDICAL RECORDS HISTORY" />
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => fetchRecords({ isPullRefresh: true })} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">
@@ -174,10 +174,10 @@ export default function RecordsMedical() {
                     <View className="flex-row justify-between items-center border-b border-gray-100 pb-2">
                       <Text className="text-normal font-bold border-gray-100 pb-2">
                         {isItemToday
-                          ? `Today, ${new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                          ? `Today, ${new Date(dateStringToUse || "").toLocaleDateString("en-US", {
                               dateStyle: "long",
                             })}`
-                          : new Date(dateStringToUse || "").toLocaleDateString("id-ID", {
+                          : new Date(dateStringToUse || "").toLocaleDateString("en-US", {
                               dateStyle: "long",
                             })}
                       </Text>

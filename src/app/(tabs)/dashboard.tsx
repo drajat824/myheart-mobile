@@ -174,7 +174,7 @@ const Heart3DCard = React.memo(({ currentHR }: { currentHR: number }) => {
 
   return (
     <Cards className="flex flex-col gap-3">
-      <Text className="text-label">GEOMETRIC CARDIO MODEL</Text>
+      <Text className="text-label">Geometric Cardio Model</Text>
       <View className="flex flex-col">
         <View className="h-72 w-full overflow-hidden rounded-lg bg-[#F5F5F5]">
           {modelBase64 ? (
@@ -280,7 +280,7 @@ export default function Dashboard() {
             <View className="flex flex-row items-center gap-2">
               <MaterialDesignIcons name="watch-import" size={40} color="#FFFFFF" />
               <Text className="text-3xl font-normal text-white">
-                CONNECT{"\n"}
+                CONNECT TO{"\n"}
                 SMARTWATCH
               </Text>
             </View>
@@ -295,7 +295,7 @@ export default function Dashboard() {
         <View className="mt-4 flex flex-col gap-4">
           {/* CARD HR SMARTWATCH */}
           <Cards className="flex flex-col gap-2">
-            <Text className="text-label">SMARTWATCH HR</Text>
+            <Text className="text-label">Heart Rate</Text>
             <View className="flex flex-row items-end justify-between">
               <Text className={`text-6xl font-semibold ${displayStatus !== "-" && connectedDeviceName && !isLoadingConnected ? (displayStatus === "NORMAL" ? "text-theme-green" : "text-red-400") : "text-gray-400"}`}>
                 {currentHR}
@@ -308,7 +308,7 @@ export default function Dashboard() {
 
           {/* REALTIME CHART */}
           <Cards className="flex flex-col gap-2">
-            <Text className="text-label pb-3">REAL-TIME HR</Text>
+            <Text className="text-label pb-3">Heart Rate (Real-Time)</Text>
             <View className="flex-col gap-1">
               <HRRealtimeChartCard data={realtimeChartData} />
               <Pressable className="flex flex-row items-center justify-end pr-2 pt-1 active:opacity-40" onPress={() => router.push("/records_hr_realtime")}>
@@ -320,7 +320,7 @@ export default function Dashboard() {
 
           {/* AGGREGATE CHART */}
           <Cards className="flex flex-col gap-2">
-            <Text className="text-label pb-3">HR AGGREGATION (10 MINUTES)</Text>
+            <Text className="text-label pb-3">Heart Rate (Granular 10 Minutes)</Text>
             <View className="flex-col gap-1">
               <HRAggregateChartCard data={aggregateChartData} />
               <Pressable className="flex flex-row items-center justify-end pr-2 pt-1 active:opacity-40" onPress={() => router.push("/records_hr_aggregation")}>
@@ -336,7 +336,7 @@ export default function Dashboard() {
 
             {/* SIMULASI GANGGUAN JANTUNG */}
             <Cards className="flex flex-col gap-3">
-              <Text className="text-label">{`CARDIAC\nDISORDER SIMULATION`}</Text>
+              <Text className="text-label">{`Cardiac Disorder Simulation (Temporary)`}</Text>
               <View className="mt-2 flex flex-col items-center justify-center gap-2">
                 <Button mode={simulateStatus === "NORMAL" ? "contained" : "outlined"} className="w-full" onPress={() => setSimulateStatus("NORMAL")}>
                   <Text style={{ color: simulateStatus === "NORMAL" ? "#fff" : "#038175" }}>NORMAL</Text>

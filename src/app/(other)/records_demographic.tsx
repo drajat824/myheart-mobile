@@ -109,7 +109,7 @@ export default function RecordsDemographic() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="MEDICAL RECORDS" subTitle="DEMOGRAPHIC HISTORY" />
+        <RouterSub title="CLINICAL RECORDS" subTitle="DEMOGRAPHIC HISTORY" />
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
             <TouchableOpacity onPress={() => fetchRecords({ isPullRefresh: true })} disabled={isLoading || refreshing} className="self-end bg-white p-3 shadow-md rounded-xl justify-center items-center">

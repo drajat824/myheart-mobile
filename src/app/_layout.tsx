@@ -236,8 +236,8 @@ function RootLayoutContent() {
     if (!activeSchedule) return null;
 
     const dateObj = parseToDate(activeSchedule.schedule_date);
-    const timeString = dateObj.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit" }) + " WIB";
-    const dateString = dateObj.toLocaleDateString("id-ID", { weekday: "long", day: "numeric", month: "long" });
+    const timeString = dateObj.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit" }) + " WIB";
+    const dateString = dateObj.toLocaleDateString("en-US", { weekday: "long", day: "numeric", month: "long" });
     const displayName = activeSchedule.brand_name ? `${activeSchedule.brand_name} (${activeSchedule.generic_name})` : activeSchedule.generic_name;
 
     return (
@@ -250,18 +250,18 @@ function RootLayoutContent() {
           <Text className="text-xl font-bold text-black">{displayName}</Text>
 
           <View className="mt-2 flex-row flex-wrap gap-x-4 gap-y-1">
-            {activeSchedule.meal_relation && <Text className="text-sm text-gray-700">Relasi Makan: {activeSchedule.meal_relation}</Text>}
-            {activeSchedule.route && <Text className="text-sm text-gray-700">Rute: {activeSchedule.route}</Text>}
+            {activeSchedule.meal_relation && <Text className="text-sm text-gray-700">Meal Relation: {activeSchedule.meal_relation}</Text>}
+            {activeSchedule.route && <Text className="text-sm text-gray-700">Route: {activeSchedule.route}</Text>}
           </View>
         </View>
 
         <View className="mt-6 flex flex-row justify-between gap-3">
           <TouchableOpacity className="flex-1 items-center justify-center rounded-xl bg-[#DB3546] py-3" onPress={handleSnooze} disabled={isLoadingAction}>
-            <Text className="font-bold text-white">TUNDA 15 MNT</Text>
+            <Text className="font-bold text-white">SNOOZE 15 MIN</Text>
           </TouchableOpacity>
 
           <TouchableOpacity className="flex-1 items-center justify-center rounded-xl bg-[#38C172] py-3" onPress={handleTaken} disabled={isLoadingAction}>
-            {isLoadingAction ? <ActivityIndicator color="#fff" /> : <Text className="font-bold text-white">SUDAH DIMINUM</Text>}
+            {isLoadingAction ? <ActivityIndicator color="#fff" /> : <Text className="font-bold text-white">TAKEN</Text>}
           </TouchableOpacity>
         </View>
       </View>
@@ -287,8 +287,8 @@ function RootLayoutContent() {
               <View className="mx-8 flex justify-center">
                 <Cards>
                   <View className="items-center">
-                    <Text className="text-2xl font-bold text-red-600">KONFIRMASI ULANG</Text>
-                    <Text className="mt-2 text-center text-sm text-gray-600">Anda melewatkan jadwal sebelumnya. Harap konfirmasi jadwal ini terlebih dahulu:</Text>
+                    <Text className="text-2xl font-bold text-red-600">RECONFIRMATION</Text>
+                    <Text className="mt-2 text-center text-sm text-gray-600">You missed the previous schedule. Please confirm this schedule first:</Text>
                   </View>
                   {renderScheduleInfo()}
                 </Cards>
@@ -299,8 +299,8 @@ function RootLayoutContent() {
               <View className="mx-8 flex justify-center">
                 <Cards>
                   <View className="items-center">
-                    <Text className="text-2xl font-bold">JADWAL OBAT</Text>
-                    <Text className="mt-2 text-center text-sm text-gray-600">Waktunya minum obat Anda:</Text>
+                    <Text className="text-2xl font-bold">Medication Schedule</Text>
+                    <Text className="mt-2 text-center text-sm text-gray-600">It's time to take your medicine:</Text>
                   </View>
                   {renderScheduleInfo()}
                 </Cards>

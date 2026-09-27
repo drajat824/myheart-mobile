@@ -62,14 +62,14 @@ export default function DatePicker({ initialDate, initialRangeEndDate, initialRa
   }, [initialRangeEndDate]);
 
   const formatDate = (value: Date) =>
-    value.toLocaleDateString("id-ID", {
+    value.toLocaleDateString("en-US", {
       day: "numeric",
       month: "long",
       year: "numeric",
     });
 
   const formatDateRange = (value: Date) =>
-    value.toLocaleDateString("id-ID", {
+    value.toLocaleDateString("en-US", {
       day: "numeric",
       month: "numeric",
       year: "numeric",

@@ -265,7 +265,7 @@ export default function RecordsDisorder() {
   return (
     <WrapperMain>
       <View className="flex-col pb-8">
-        <RouterSub title="HEALTH RECORDS" subTitle="HR DISORDER HISTORY" />
+        <RouterSub title="CLINICAL RECORDS" subTitle="CARDIAC DISORDER HISTORY" />
 
         <View className="flex flex-col gap-4 flex-1 mt-4">
           <View className="flex-row items-center gap-2">
@@ -302,7 +302,7 @@ export default function RecordsDisorder() {
                         const itemDate = parseToDate(item.recorded_at);
                         const timeFormatted = !isNaN(itemDate.getTime())
                           ? itemDate
-                              .toLocaleTimeString("id-ID", {
+                              .toLocaleTimeString("en-US", {
                                 hour: "2-digit",
                                 minute: "2-digit",
                                 second: "2-digit",

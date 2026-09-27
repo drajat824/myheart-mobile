@@ -48,7 +48,7 @@ export function HRProvider({ children }: { children: ReactNode }) {
 
   const formatTimeLabel = (timestamp: number) => {
     const d = new Date(timestamp);
-    return d.toLocaleTimeString("id-ID", {
+    return d.toLocaleTimeString("en-US", {
       hour: "2-digit",
       minute: "2-digit",
       second: "2-digit",

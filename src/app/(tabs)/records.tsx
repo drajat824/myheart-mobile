@@ -64,7 +64,7 @@ const parseToDate = (dateVal: string | number | undefined): Date => {
 const groupByDate = <T,>(data: T[], getDateFn: (item: T) => Date) => {
   const grouped = data.reduce((acc: Record<string, T[]>, item) => {
     const dateObj = getDateFn(item);
-    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", { dateStyle: "long" }) : "-";
+    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("en-US", { dateStyle: "long" }) : "-";
     if (!acc[dateFormatted]) {
       acc[dateFormatted] = [];
     }
@@ -79,7 +79,7 @@ const groupByDate = <T,>(data: T[], getDateFn: (item: T) => Date) => {
 
   for (const item of data) {
     const dateObj = getDateFn(item);
-    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("id-ID", { dateStyle: "long" }) : "-";
+    const dateFormatted = !isNaN(dateObj.getTime()) ? dateObj.toLocaleDateString("en-US", { dateStyle: "long" }) : "-";
     if (!addedDates.has(dateFormatted)) {
       addedDates.add(dateFormatted);
       result.push({ date: dateFormatted, items: grouped[dateFormatted] });
@@ -173,8 +173,8 @@ export default function Records() {
     <WrapperMain>
       <View className="flex-col">
         <Header>
-          <Text className="text-title text-white">HEALTH RECORDS</Text>
-          <Text className="text-normal text-white font-light">History of check-ups, heart rate graphs, and daily health records.</Text>
+          <Text className="text-title text-white">CLINICAL RECORDS</Text>
+          <Text className="text-normal text-white font-light">Detail Patient Data.</Text>
         </Header>
 
         <View className="flex flex-col gap-4 mt-4">
@@ -192,7 +192,7 @@ export default function Records() {
 
           {activeTab == "DEMOGRAPHIC" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">DEMOGRAPHIC DATA</Text>
+              <Text className="text-normal font-bold">Demographic History</Text>
               {latestDemographics.length > 0 && renderDescriptionText()}
 
               <View className="flex-col gap-3 mt-2">
@@ -203,14 +203,14 @@ export default function Records() {
 
                         {group.items.map((item, itemIdx) => {
                           const itemDate = parseToDate(item.check_date || item.created_at);
-                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
+                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
 
                           return (
                             <View key={`demo-item-${itemIdx}`} className="mb-2">
-                              <View className="flex-row justify-between pl-2">
+                              {/* <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Time:</Text>
                                 <Text className="font-semibold">{timeFormatted} WIB</Text>
-                              </View>
+                              </View> */}
                               <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Weight / Height:</Text>
                                 <Text className="font-semibold">
@@ -240,7 +240,7 @@ export default function Records() {
 
           {activeTab == "MEDICAL" && (
             <Cards className="flex flex-col gap-2">
-              <Text className="text-normal font-bold">MEDICAL RECORDS DATA</Text>
+              <Text className="text-normal font-bold">Medical Records History</Text>
               {latestMedicals.length > 0 && renderDescriptionText()}
 
               <View className="flex-col gap-3 mt-2">
@@ -251,14 +251,14 @@ export default function Records() {
 
                         {group.items.map((item, itemIdx) => {
                           const itemDate = parseToDate(item.check_date || item.created_at);
-                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("id-ID", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
+                          const timeFormatted = !isNaN(itemDate.getTime()) ? itemDate.toLocaleTimeString("en-US", { hour: "2-digit", minute: "2-digit", second: "2-digit" }).replace(/\./g, ":") : "--:--:--";
 
                           return (
                             <View key={`med-item-${itemIdx}`} className="mb-2">
-                              <View className="flex-row justify-between pl-2">
+                              {/* <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Time:</Text>
                                 <Text className="font-semibold">{timeFormatted} WIB</Text>
-                              </View>
+                              </View> */}
                               <View className="flex-row justify-between pl-2">
                                 <Text className="text-gray-600">Lab Results:</Text>
                                 <Text className="font-semibold">{item.lab_result ? "Available" : "Unavailable"}</Text>
@@ -290,7 +290,7 @@ export default function Records() {
             <View className="flex flex-col gap-4">
               {/* CARDS HEART DISORDER HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">HEART DISORDER HISTORY</Text>
+                <Text className="text-normal font-bold">Cardiac Disorder History</Text>
                 {latestIssueRecords.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -303,7 +303,7 @@ export default function Records() {
                             const itemDate = parseToDate(item.recorded_at);
                             const timeFormatted = !isNaN(itemDate.getTime())
                               ? itemDate
-                                  .toLocaleTimeString("id-ID", {
+                                  .toLocaleTimeString("en-US", {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     second: "2-digit",
@@ -331,7 +331,7 @@ export default function Records() {
 
               {/* CARDS HR AGGREGATION HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">HR AGGREGATION HISTORY</Text>
+                <Text className="text-normal font-bold">Heart Rate Granulation History</Text>
                 {latestHRAggregation.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -347,7 +347,7 @@ export default function Records() {
 
                             const timeFormatted = !isNaN(itemDate.getTime())
                               ? itemDate
-                                  .toLocaleTimeString("id-ID", {
+                                  .toLocaleTimeString("en-US", {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     second: "2-digit",
@@ -375,7 +375,7 @@ export default function Records() {
 
               {/* CARDS REALTIME HR HISTORY */}
               <Cards className="flex flex-col gap-2">
-                <Text className="text-normal font-bold">HR REALTIME HISTORY</Text>
+                <Text className="text-normal font-bold">Heart Rate Real-Time History</Text>
                 {latestHRRecords.length > 0 && renderDescriptionText()}
 
                 <View className="flex-col gap-3 mt-2">
@@ -391,7 +391,7 @@ export default function Records() {
 
                             const timeFormatted = !isNaN(itemDate.getTime())
                               ? itemDate
-                                  .toLocaleTimeString("id-ID", {
+                                  .toLocaleTimeString("en-US", {
                                     hour: "2-digit",
                                     minute: "2-digit",
                                     second: "2-digit",

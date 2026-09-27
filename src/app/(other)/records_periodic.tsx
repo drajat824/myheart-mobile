@@ -50,7 +50,7 @@ const formatDisplayDate = (dateKey: string): string => {
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return dateKey;
 
-  return parsedDate.toLocaleDateString("id-ID", {
+  return parsedDate.toLocaleDateString("en-US", {
     day: "numeric",
     month: "long",
     year: "numeric",
@@ -64,7 +64,7 @@ const getDayName = (dateKey: string): string => {
   const parsedDate = new Date(Number(year), Number(month) - 1, Number(day));
   if (isNaN(parsedDate.getTime())) return "";
 
-  return parsedDate.toLocaleDateString("id-ID", { weekday: "long" }).toUpperCase();
+  return parsedDate.toLocaleDateString("en-US", { weekday: "long" }).toUpperCase();
 };
 
 const isDateToday = (dateKey: string): boolean => {
